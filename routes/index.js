@@ -54,11 +54,18 @@ exports.loginHandler = function (req, res, next) {
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  // Log the login action for audit - sanitize to prevent log injection
+  var safeUsername = String(username).replace(/[\r\n]/g, '_');
+  console.log('User logged in: ' + safeUsername)
 
   if (redirectPage) {
-      return res.redirect(redirectPage)
+      // Validate redirect target is a safe relative path to prevent open redirect
+      var target = String(redirectPage);
+      if (target.startsWith('/') && !target.startsWith('//')) {
+        return res.redirect(target)
+      } else {
+        return res.redirect('/admin')
+      }
   } else {
       return res.redirect('/admin')
   }
@@ -296,7 +303,9 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  // Sanitize user-controlled data before logging to prevent log injection
+  var safeQuery = JSON.stringify(req.query).replace(/[\r\n]/g, '_');
+  console.log(safeQuery);
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
