@@ -39,8 +39,13 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(methodOverride());
+var sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  sessionSecret = crypto.randomBytes(32).toString('hex');
+  console.warn('SESSION_SECRET env var not set; generated a random ephemeral secret for this process');
+}
 app.use(session({
-  secret: 'keyboard cat',
+  secret: sessionSecret,
   name: 'connect.sid',
   cookie: { path: '/' }
 }))
