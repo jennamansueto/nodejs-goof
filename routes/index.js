@@ -35,7 +35,10 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
+  if (
+    validator.isEmail(req.body.username) &&
+    typeof req.body.password === 'string'
+  ) {
     User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
@@ -51,13 +54,25 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
+function sanitizeForLog(value) {
+  return String(value).replace(/[\r\n\t]/g, '_');
+}
+
+function isSafeRedirect(target) {
+  return typeof target === 'string'
+    && target.length > 0
+    && target.charAt(0) === '/'
+    && target.charAt(1) !== '/'
+    && target.charAt(1) !== '\\';
+}
+
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log('User logged in: ' + sanitizeForLog(username))
 
-  if (redirectPage) {
+  if (isSafeRedirect(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -99,12 +114,19 @@ exports.save_account_details = function(req, res, next) {
     && validator.isAscii(profile.lastname)
     && validator.isAscii(profile.country)
   ) {
-    // trim any extra spaces on the right of the name
-    profile.firstname = validator.rtrim(profile.firstname)
-    profile.lastname = validator.rtrim(profile.lastname)
+    // Build a safe locals object from a whitelisted set of fields so that
+    // user-controlled keys (e.g. "layout") cannot influence the template
+    // engine's file lookup.
+    const safeProfile = {
+      email: profile.email,
+      phone: profile.phone,
+      firstname: validator.rtrim(profile.firstname),
+      lastname: validator.rtrim(profile.lastname),
+      country: profile.country,
+    }
 
     // render the view
-    return res.render('account.hbs', profile)
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
@@ -296,7 +318,6 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
