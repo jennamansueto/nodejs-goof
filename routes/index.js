@@ -10,6 +10,7 @@ var readline = require('readline');
 var moment = require('moment');
 var exec = require('child_process').exec;
 var validator = require('validator');
+var crypto = require('crypto');
 
 // zip-slip
 var fileType = require('file-type');
@@ -312,9 +313,9 @@ exports.about_new = function (req, res, next) {
 // same logic using MongoDB.
 const users = [
   // You know password for the user.
-  { name: 'user', password: process.env.CHAT_USER_PASSWORD || Math.random().toString(32) },
+  { name: 'user', password: process.env.CHAT_USER_PASSWORD || crypto.randomBytes(16).toString('hex') },
   // You don't know password for the admin.
-  { name: 'admin', password: Math.random().toString(32), canDelete: true },
+  { name: 'admin', password: crypto.randomBytes(16).toString('hex'), canDelete: true },
 ];
 
 let messages = [];
