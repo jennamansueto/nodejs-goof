@@ -59,11 +59,15 @@ function sanitizeForLog(value) {
 }
 
 function isSafeRedirect(target) {
-  return typeof target === 'string'
-    && target.length > 0
-    && target.charAt(0) === '/'
-    && target.charAt(1) !== '/'
-    && target.charAt(1) !== '\\';
+  if (typeof target !== 'string' || target.length === 0) return false;
+  // Strip characters that browsers silently remove during URL parsing
+  // (WHATWG URL spec: ASCII tab U+0009, LF U+000A, CR U+000D). Without
+  // this, a value like "/\t/evil.com" would pass the single-slash check
+  // but still be interpreted by the browser as "//evil.com".
+  var cleaned = target.replace(/[\t\n\r]/g, '');
+  return cleaned.charAt(0) === '/'
+    && cleaned.charAt(1) !== '/'
+    && cleaned.charAt(1) !== '\\';
 }
 
 function adminLoginSuccess(redirectPage, session, username, res) {
