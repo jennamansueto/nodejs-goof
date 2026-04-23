@@ -10,7 +10,6 @@ var readline = require('readline');
 var moment = require('moment');
 var exec = require('child_process').exec;
 var validator = require('validator');
-var path = require('path');
 
 // zip-slip
 var fileType = require('file-type');
@@ -115,10 +114,7 @@ exports.save_account_details = function(req, res, next) {
     profile.lastname = validator.rtrim(profile.lastname)
 
     // render the view
-    var safePath = path.normalize(profile.layout || '').replace(/\.\.[\/\\]/g, '');
-    if (safePath && safePath !== '.' && safePath !== path.normalize(safePath)) {
-      return res.render('account.hbs')
-    }
+    delete profile.layout;
     return res.render('account.hbs', profile)
   } else {
     // if input validation fails, we just render the view as is
