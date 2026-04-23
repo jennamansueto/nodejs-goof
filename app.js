@@ -81,7 +81,7 @@ if (app.get('env') == 'development') {
 }
 
 var token = process.env.SECRET_TOKEN || 'development-token-placeholder';
-console.log('token: ' + (token ? '[REDACTED]' : 'not set'));
+console.log('token: ' + (process.env.SECRET_TOKEN ? '[REDACTED]' : 'not set'));
 
 http.createServer(app).listen(app.get('port'), function () {
   console.log('Express server listening on port ' + app.get('port'));
