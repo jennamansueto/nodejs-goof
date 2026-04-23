@@ -9,7 +9,7 @@ typeorm.createConnection({
   host: "localhost",
   port: 3306,
   username: "root",
-  password: "root",
+  password: process.env.MYSQL_PASSWORD || 'root',
   database: "acme",
   synchronize: true,
   "logging": true,
