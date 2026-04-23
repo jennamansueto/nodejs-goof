@@ -37,7 +37,7 @@ exports.index = function (req, res, next) {
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
     var username = req.body.username.toString();
-    var password = req.body.password.toString();
+    var password = (req.body.password || '').toString();
     User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
@@ -65,7 +65,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
 
   if (redirectPage) {
       var page = redirectPage.toString();
-      if (page.startsWith('/') && !page.startsWith('//')) {
+      if (page.startsWith('/') && !page.startsWith('//') && !page.includes('\\')) {
           return res.redirect(page)
       }
       return res.redirect('/admin')
