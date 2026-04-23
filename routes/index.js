@@ -36,7 +36,9 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    var username = req.body.username.toString();
+    var password = (req.body.password || '').toString();
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -51,14 +53,22 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
+function sanitizeLogOutput(value) {
+  if (typeof value !== 'string') return '';
+  return value.replace(/[\r\n\t]/g, '_');
+}
+
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log('User logged in: ' + sanitizeLogOutput(username))
 
   if (redirectPage) {
-      return res.redirect(redirectPage)
+      var page = redirectPage.toString().replace(/[\t\n\r]/g, '');
+      if (page.startsWith('/') && !page.startsWith('//') && !page.includes('\\')) {
+          return res.redirect(page)
+      }
+      return res.redirect('/admin')
   } else {
       return res.redirect('/admin')
   }
@@ -104,6 +114,7 @@ exports.save_account_details = function(req, res, next) {
     profile.lastname = validator.rtrim(profile.lastname)
 
     // render the view
+    delete profile.layout;
     return res.render('account.hbs', profile)
   } else {
     // if input validation fails, we just render the view as is
@@ -296,7 +307,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log(sanitizeLogOutput(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
