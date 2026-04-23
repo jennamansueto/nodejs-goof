@@ -64,7 +64,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   console.log('User logged in: ' + sanitizeLogOutput(username))
 
   if (redirectPage) {
-      var page = redirectPage.toString();
+      var page = redirectPage.toString().replace(/[\t\n\r]/g, '');
       if (page.startsWith('/') && !page.startsWith('//') && !page.includes('\\')) {
           return res.redirect(page)
       }
