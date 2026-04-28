@@ -55,7 +55,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log('User logged in: ' + String(username).replaceAll(/[\n\r]/g, '_'))
 
   if (redirectPage) {
       return res.redirect(redirectPage)
@@ -296,7 +296,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log(JSON.stringify(req.query).replaceAll(/[\n\r]/g, ''));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
