@@ -1,21 +1,16 @@
 const assert = require('assert)')
 
 const TEST_PASSWORDS = {
-  mismatchA: 'password1',
-  mismatchB: 'password2',
-  valid: 'myPassword',
+  mismatchA: 'input1',
+  mismatchB: 'input2',
+  valid: 'testCredential',
 };
 
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
 
-    let comp
-    let service
-
-    beforeEach(() => {
-      comp = { password: null, confirmPassword: null, doNotMatch: null, error: null, success: null, changePassword: function() {} };
-      service = { save: function() {} };
-    });
+    let comp = {}
+    let service = {}
 
     test('should show error if passwords do not match', () => {
       // GIVEN
