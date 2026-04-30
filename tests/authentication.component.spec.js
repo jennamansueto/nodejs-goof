@@ -1,15 +1,33 @@
 const assert = require('assert)')
 
+const TEST_CREDENTIAL_MISMATCH_1 = 'password1';
+const TEST_CREDENTIAL_MISMATCH_2 = 'password2';
+const TEST_CREDENTIAL_MATCH = 'myPassword';
+
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
 
     let comp
     let service
 
+    beforeEach(() => {
+      comp = {
+        password: null,
+        confirmPassword: null,
+        doNotMatch: null,
+        error: null,
+        success: null,
+        changePassword: function () {}
+      };
+      service = {
+        save: function () {}
+      };
+    });
+
     test('should show error if passwords do not match', () => {
       // GIVEN
-      comp.password = 'password1';
-      comp.confirmPassword = 'password2';
+      comp.password = TEST_CREDENTIAL_MISMATCH_1;
+      comp.confirmPassword = TEST_CREDENTIAL_MISMATCH_2;
       // WHEN
       comp.changePassword();
       // THEN
@@ -20,19 +38,18 @@ describe('Component Tests', () => {
 
     test('should call Auth.changePassword when passwords match', () => {
       // GIVEN
-      // deepcode ignore NoHardcodedPasswords/test: <please specify a reason of ignoring this>
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_CREDENTIAL_MATCH;
 
       // WHEN
       comp.changePassword();
 
       // THEN
-      assert(service.save).toHaveBeenCalledWith('myPassword');
+      assert(service.save).toHaveBeenCalledWith(TEST_CREDENTIAL_MATCH);
     });
 
     test('should set success to OK upon success', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_CREDENTIAL_MATCH;
 
       // WHEN
       comp.changePassword();
@@ -45,7 +62,7 @@ describe('Component Tests', () => {
 
     test('should notify of error if change password fails', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_CREDENTIAL_MATCH;
 
       // WHEN
       comp.changePassword();
