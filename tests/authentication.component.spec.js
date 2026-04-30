@@ -10,6 +10,20 @@ describe('Component Tests', () => {
     let comp
     let service
 
+    beforeEach(() => {
+      comp = {
+        password: null,
+        confirmPassword: null,
+        doNotMatch: null,
+        error: null,
+        success: null,
+        changePassword: function () {}
+      };
+      service = {
+        save: function () {}
+      };
+    });
+
     test('should show error if passwords do not match', () => {
       // GIVEN
       comp.password = TEST_CREDENTIAL_MISMATCH_1;
