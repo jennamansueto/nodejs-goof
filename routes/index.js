@@ -35,11 +35,11 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  var username = typeof req.body.username === 'string' ? req.body.username : '';
-  var password = typeof req.body.password === 'string' ? req.body.password : '';
+  const username = typeof req.body.username === 'string' ? req.body.username : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
 
   if (validator.isEmail(username)) {
-    User.find({ username: username, password: password }, function (err, users) {
+    User.find().where('username').equals(username).where('password').equals(password).exec(function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -53,14 +53,14 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
-var ALLOWED_REDIRECTS = ['/admin', '/account_details', '/login', '/'];
+const ALLOWED_REDIRECTS = ['/admin', '/account_details', '/login', '/'];
 
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   console.log({event: 'user_login', username: username})
 
-  if (redirectPage && ALLOWED_REDIRECTS.indexOf(String(redirectPage)) !== -1) {
+  if (redirectPage && ALLOWED_REDIRECTS.includes(String(redirectPage))) {
       return res.redirect(ALLOWED_REDIRECTS[ALLOWED_REDIRECTS.indexOf(String(redirectPage))])
   } else {
       return res.redirect('/admin')
