@@ -311,9 +311,7 @@ exports.about_new = function (req, res, next) {
 // In order of simplicity we are not using any database. But you can write the
 // same logic using MongoDB.
 const users = [
-  // You know password for the user.
-  { name: 'user', password: 'pwd' },
-  // You don't know password for the admin.
+  { name: 'user', password: process.env.CHAT_USER_PASSWORD || 'pwd' },
   { name: 'admin', password: Math.random().toString(32), canDelete: true },
 ];
 
