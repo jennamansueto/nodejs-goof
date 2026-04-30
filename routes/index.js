@@ -35,12 +35,14 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+  const username = typeof req.body.username === 'string' ? req.body.username : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+
+  if (validator.isEmail(username)) {
+    User.find().where('username').equals(username).where('password').equals(password).exec(function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
-        const username = req.body.username
         return adminLoginSuccess(redirectPage, session, username, res)
       } else {
         return res.status(401).send()
@@ -51,14 +53,15 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
+const ALLOWED_REDIRECTS = ['/admin', '/account_details', '/login', '/'];
+
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log({event: 'user_login', username: username})
 
-  if (redirectPage) {
-      return res.redirect(redirectPage)
+  if (redirectPage && ALLOWED_REDIRECTS.includes(String(redirectPage))) {
+      return res.redirect(ALLOWED_REDIRECTS[ALLOWED_REDIRECTS.indexOf(String(redirectPage))])
   } else {
       return res.redirect('/admin')
   }
@@ -104,6 +107,7 @@ exports.save_account_details = function(req, res, next) {
     profile.lastname = validator.rtrim(profile.lastname)
 
     // render the view
+    delete profile.layout;
     return res.render('account.hbs', profile)
   } else {
     // if input validation fails, we just render the view as is
@@ -296,7 +300,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log({event: 'about_new', query: req.query});
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
