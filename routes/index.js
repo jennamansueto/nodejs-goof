@@ -53,22 +53,15 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
-function sanitizeLogInput(str) {
-  if (typeof str !== 'string') return '';
-  return str.replace(/[\r\n\t]/g, '_');
-}
+var ALLOWED_REDIRECTS = ['/admin', '/account_details', '/login', '/'];
 
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  console.log('User logged in: ' + sanitizeLogInput(username))
+  console.log({event: 'user_login', username: username})
 
-  if (redirectPage) {
-      var target = String(redirectPage);
-      if (target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\')) {
-        return res.redirect(target)
-      }
-      return res.redirect('/admin')
+  if (redirectPage && ALLOWED_REDIRECTS.indexOf(String(redirectPage)) !== -1) {
+      return res.redirect(ALLOWED_REDIRECTS[ALLOWED_REDIRECTS.indexOf(String(redirectPage))])
   } else {
       return res.redirect('/admin')
   }
@@ -307,7 +300,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(sanitizeLogInput(JSON.stringify(req.query)));
+  console.log({event: 'about_new', query: req.query});
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
