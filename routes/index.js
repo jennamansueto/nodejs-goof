@@ -36,8 +36,8 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    var username = String(req.body.username);
-    var password = String(req.body.password);
+    const username = String(req.body.username);
+    const password = String(req.body.password);
     User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
