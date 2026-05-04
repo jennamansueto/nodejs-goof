@@ -19,6 +19,17 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+// Sanitize user-controlled values before they reach a logger to prevent
+// log forging / injection (SonarQube jssecurity:S5145). Strips CR/LF and
+// other ASCII control characters that an attacker could use to inject
+// fake log lines or terminal escape sequences.
+function sanitizeForLog(value) {
+  if (value === null || typeof value === 'undefined') return '';
+  return String(value)
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[\x00-\x1F\x7F]/g, '?');
+}
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -55,7 +66,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log('User logged in: ' + sanitizeForLog(username))
 
   if (redirectPage) {
       return res.redirect(redirectPage)
@@ -296,7 +307,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log('about_new query: ' + sanitizeForLog(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
