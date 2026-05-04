@@ -20,13 +20,18 @@ var fs = require('fs');
 var _ = require('lodash');
 
 // Validate that a redirect target is a same-origin, relative path. Rejects
-// absolute URLs (http://...), protocol-relative URLs (//evil.com) and the
-// backslash variant some browsers normalize to '//'. Used to remediate
-// SonarQube jssecurity:S5146 (open redirect).
+// absolute URLs (http://...), protocol-relative URLs (//evil.com), the
+// backslash variant some browsers normalize to '//', and ASCII tab /
+// newline characters that the WHATWG URL parser strips before resolving
+// (a "/\t/evil.com" target would otherwise round-trip to "//evil.com").
+// Used to remediate SonarQube jssecurity:S5146 (open redirect).
 function isSafeLocalRedirect(target) {
   if (typeof target !== 'string' || target.length === 0) return false;
   if (target[0] !== '/') return false;
   if (target[1] === '/' || target[1] === '\\') return false;
+  // Per the WHATWG URL spec, browsers silently strip TAB (U+0009) and
+  // CR/LF (U+000A, U+000D) anywhere in a URL before parsing it.
+  if (/[\t\n\r]/.test(target)) return false;
   return true;
 }
 
