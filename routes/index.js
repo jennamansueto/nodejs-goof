@@ -18,8 +18,7 @@ var fs = require('fs');
 
 // prototype-pollution
 var _ = require('lodash');
-
-const mongoSanitize = require('mongo-sanitize'); // SonarQube jssecurity:S5147
+const mongoSanitize = require('mongo-sanitize'); // S5147
 
 exports.index = function (req, res, next) {
   Todo.
@@ -37,32 +36,23 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  // Strip any MongoDB operator keys ($ne, $gt, etc.) from the input via
-  // mongo-sanitize before the values are used in a query. Combined with
-  // a strict string-type guard this prevents NoSQL injection where a
-  // body like { "password": { "$ne": null } } would otherwise be
-  // interpreted as an operator and bypass authentication.
-  // (SonarQube jssecurity:S5147)
-  const cleanUsername = mongoSanitize(req.body.username)
-  const cleanPassword = mongoSanitize(req.body.password)
-
-  if (typeof cleanUsername !== 'string' || typeof cleanPassword !== 'string') {
+  // mongo-sanitize strips $-prefixed operator keys from objects so a body
+  // like {password: {$ne: null}} cannot reach the Mongoose query as an
+  // operator (SonarQube jssecurity:S5147).
+  const username = mongoSanitize(req.body.username)
+  const password = mongoSanitize(req.body.password)
+  if (typeof username !== 'string' || !validator.isEmail(username)) {
     return res.status(401).send()
   }
-
-  if (validator.isEmail(cleanUsername)) {
-    User.find({ username: cleanUsername, password: cleanPassword }, function (err, users) {
-      if (users.length > 0) {
-        const redirectPage = req.body.redirectPage
-        const session = req.session
-        return adminLoginSuccess(redirectPage, session, cleanUsername, res)
-      } else {
-        return res.status(401).send()
-      }
-    });
-  } else {
-    return res.status(401).send()
-  }
+  User.find({ username: username, password: password }, function (err, users) {
+    if (users.length > 0) {
+      const redirectPage = req.body.redirectPage
+      const session = req.session
+      return adminLoginSuccess(redirectPage, session, username, res)
+    } else {
+      return res.status(401).send()
+    }
+  });
 };
 
 function adminLoginSuccess(redirectPage, session, username, res) {
