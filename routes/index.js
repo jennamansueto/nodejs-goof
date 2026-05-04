@@ -19,6 +19,9 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+// NoSQL injection mitigation (SonarQube jssecurity:S5147)
+var mongoSanitize = require('mongo-sanitize');
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -35,19 +38,25 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  // Coerce both fields to plain strings before using them in the Mongoose
-  // query. If either field is an object (e.g. {$ne: null}), Mongo would
-  // otherwise interpret it as an operator and return any matching user
-  // (NoSQL injection — SonarQube jssecurity:S5147).
-  const username = typeof req.body.username === 'string' ? req.body.username : ''
-  const password = typeof req.body.password === 'string' ? req.body.password : ''
+  // Strip any MongoDB operator keys ($ne, $gt, etc.) from the input via
+  // mongo-sanitize before the values are used in a query. Combined with
+  // a strict string-type guard this prevents NoSQL injection where a
+  // body like { "password": { "$ne": null } } would otherwise be
+  // interpreted as an operator and bypass authentication.
+  // (SonarQube jssecurity:S5147)
+  const cleanUsername = mongoSanitize(req.body.username)
+  const cleanPassword = mongoSanitize(req.body.password)
 
-  if (validator.isEmail(username)) {
-    User.find({ username: username, password: password }, function (err, users) {
+  if (typeof cleanUsername !== 'string' || typeof cleanPassword !== 'string') {
+    return res.status(401).send()
+  }
+
+  if (validator.isEmail(cleanUsername)) {
+    User.find({ username: cleanUsername, password: cleanPassword }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
-        return adminLoginSuccess(redirectPage, session, username, res)
+        return adminLoginSuccess(redirectPage, session, cleanUsername, res)
       } else {
         return res.status(401).send()
       }
