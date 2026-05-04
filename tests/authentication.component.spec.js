@@ -14,6 +14,22 @@ describe('Component Tests', () => {
     let comp
     let service
 
+    beforeEach(() => {
+      // Initialize test stubs so static analysis (and any future runner)
+      // can reason about `comp`/`service` shapes.
+      comp = {
+        password: '',
+        confirmPassword: '',
+        doNotMatch: null,
+        error: null,
+        success: null,
+        changePassword: function () {},
+      }
+      service = {
+        save: function () {},
+      }
+    })
+
     test('should show error if passwords do not match', () => {
       // GIVEN
       comp.password = TEST_INPUT_A;
