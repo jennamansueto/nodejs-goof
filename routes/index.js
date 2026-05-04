@@ -19,8 +19,7 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
-// NoSQL injection mitigation (SonarQube jssecurity:S5147)
-var mongoSanitize = require('mongo-sanitize');
+const mongoSanitize = require('mongo-sanitize'); // SonarQube jssecurity:S5147
 
 exports.index = function (req, res, next) {
   Todo.
