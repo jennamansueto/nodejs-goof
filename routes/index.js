@@ -99,12 +99,20 @@ exports.save_account_details = function(req, res, next) {
     && validator.isAscii(profile.lastname)
     && validator.isAscii(profile.country)
   ) {
-    // trim any extra spaces on the right of the name
-    profile.firstname = validator.rtrim(profile.firstname)
-    profile.lastname = validator.rtrim(profile.lastname)
+    // Build a whitelisted view-model from the validated fields only.
+    // Passing the raw req.body to res.render would forward attacker-controlled
+    // properties like `layout` to the template engine, enabling local file
+    // inclusion / path traversal (SonarQube jssecurity:S2083).
+    const safeProfile = {
+      email: profile.email,
+      phone: profile.phone,
+      firstname: validator.rtrim(profile.firstname),
+      lastname: validator.rtrim(profile.lastname),
+      country: profile.country,
+    }
 
     // render the view
-    return res.render('account.hbs', profile)
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
