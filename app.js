@@ -39,8 +39,13 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(methodOverride());
+var sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  console.warn('SESSION_SECRET env var not set; using insecure development fallback. Set SESSION_SECRET in production.');
+  sessionSecret = 'keyboard cat';
+}
 app.use(session({
-  secret: 'keyboard cat',
+  secret: sessionSecret,
   name: 'connect.sid',
   cookie: { path: '/' }
 }))
