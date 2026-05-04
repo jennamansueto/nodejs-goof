@@ -19,6 +19,17 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+// Validate that a redirect target is a same-origin, relative path. Rejects
+// absolute URLs (http://...), protocol-relative URLs (//evil.com) and the
+// backslash variant some browsers normalize to '//'. Used to remediate
+// SonarQube jssecurity:S5146 (open redirect).
+function isSafeLocalRedirect(target) {
+  if (typeof target !== 'string' || target.length === 0) return false;
+  if (target[0] !== '/') return false;
+  if (target[1] === '/' || target[1] === '\\') return false;
+  return true;
+}
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -57,7 +68,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   // Log the login action for audit
   console.log(`User logged in: ${username}`)
 
-  if (redirectPage) {
+  if (isSafeLocalRedirect(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
