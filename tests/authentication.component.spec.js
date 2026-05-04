@@ -11,24 +11,16 @@ const TEST_MATCHING_INPUT = 'myPassword';
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
 
-    let comp
-    let service
-
-    beforeEach(() => {
-      // Initialize test stubs so static analysis (and any future runner)
-      // can reason about `comp`/`service` shapes.
-      comp = {
-        password: '',
-        confirmPassword: '',
-        doNotMatch: null,
-        error: null,
-        success: null,
-        changePassword: function () {},
-      }
-      service = {
-        save: function () {},
-      }
-    })
+    // NOTE: This spec file is non-runnable in its current form (the require
+    // on line 1 has a typo and the assertions use Jest-style chaining against
+    // Node's `assert`). It is preserved as a fixture in this intentionally
+    // vulnerable demo repo. The bare `{}` initializers below exist only to
+    // keep static analysis happy on the lines this PR touches; they do NOT
+    // simulate the real PasswordComponent behavior. A no-op stub for
+    // `changePassword` would silently make every assertion dead code, which
+    // is worse than letting the call throw, so no functional stubs are added.
+    let comp = {}
+    let service = {}
 
     test('should show error if passwords do not match', () => {
       // GIVEN
