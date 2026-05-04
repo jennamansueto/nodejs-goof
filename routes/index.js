@@ -35,8 +35,11 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
+  // S5147: strip $-operators and ensure string before query.
+  var sanitize = require('mongo-sanitize');
+  if (typeof sanitize(req.body.username) !== 'string' || typeof sanitize(req.body.password) !== 'string') return res.status(401).send();
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    User.find({ username: sanitize(req.body.username), password: sanitize(req.body.password) }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
