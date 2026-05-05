@@ -70,8 +70,8 @@ function adminLoginSuccess(redirectPage, session, username, res) {
 
 function isSafeRedirectPath(target) {
   if (typeof target !== 'string' || target.length === 0) return false
-  if (target[0] !== '/') return false
-  if (target.length > 1 && (target[1] === '/' || target[1] === '\\')) return false
+  if (!target.startsWith('/')) return false
+  if (target.startsWith('//') || target.startsWith('/\\')) return false
   return true
 }
 
