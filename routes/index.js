@@ -22,7 +22,7 @@ var _ = require('lodash');
 // Replace CR/LF and other control characters in user-controlled values
 // before they are written to the application log. Mitigates jssecurity:S5145.
 function sanitizeForLog(value) {
-  return String(value).replace(/[\r\n\t\u0000-\u001f\u007f]+/g, ' ').slice(0, 500);
+  return String(value).replaceAll(/[\u0000-\u001f\u007f]+/g, ' ').slice(0, 500);
 }
 
 exports.index = function (req, res, next) {
@@ -49,8 +49,8 @@ exports.loginHandler = function (req, res, next) {
     validator.isEmail(req.body.username) &&
     typeof req.body.password === 'string'
   ) {
-    var safeUsername = String(req.body.username);
-    var safePassword = String(req.body.password);
+    const safeUsername = String(req.body.username);
+    const safePassword = String(req.body.password);
     User.find({ username: safeUsername, password: safePassword }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
