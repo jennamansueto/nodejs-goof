@@ -19,6 +19,12 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+// Replace CR/LF and other control characters in user-controlled values
+// before they are written to the application log. Mitigates jssecurity:S5145.
+function sanitizeForLog(value) {
+  return String(value).replace(/[\r\n\t\u0000-\u001f\u007f]+/g, ' ').slice(0, 500);
+}
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -35,12 +41,21 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+  // Require both username and password to be strings before they reach the
+  // Mongoose query. Without this guard a JSON body such as
+  // {"username":"a@b.c","password":{"$gt":""}} bypasses the equality check
+  // and authenticates as any user (jssecurity:S5147).
+  if (
+    validator.isEmail(req.body.username) &&
+    typeof req.body.password === 'string'
+  ) {
+    var safeUsername = String(req.body.username);
+    var safePassword = String(req.body.password);
+    User.find({ username: safeUsername, password: safePassword }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
-        const username = req.body.username
+        const username = safeUsername
         return adminLoginSuccess(redirectPage, session, username, res)
       } else {
         return res.status(401).send()
@@ -54,8 +69,9 @@ exports.loginHandler = function (req, res, next) {
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  // Log the login action for audit. Sanitize the username so attacker-supplied
+  // CR/LF cannot forge additional log entries (jssecurity:S5145).
+  console.log('User logged in: ' + sanitizeForLog(username))
 
   if (redirectPage) {
       return res.redirect(redirectPage)
@@ -89,6 +105,14 @@ exports.get_account_details = function(req, res, next) {
 exports.save_account_details = function(req, res, next) {
   // get the profile details from the JSON
 	const profile = req.body
+  // Strip handlebars-internal directives that resolve to template paths on
+  // disk; otherwise an attacker can include arbitrary files via the data
+  // context (jssecurity:S2083 path traversal / handlebars LFI).
+  if (profile && typeof profile === 'object') {
+    delete profile.layout
+    delete profile.partials
+    delete profile.helpers
+  }
   // validate the input
   if (validator.isEmail(profile.email, { allow_display_name: true })
     // allow_display_name allows us to receive input as:
@@ -296,7 +320,9 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  // Sanitize the stringified query before logging so attacker-supplied CR/LF
+  // cannot forge additional log entries (jssecurity:S5145).
+  console.log(sanitizeForLog(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
