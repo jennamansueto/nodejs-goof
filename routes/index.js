@@ -311,10 +311,12 @@ exports.about_new = function (req, res, next) {
 // In order of simplicity we are not using any database. But you can write the
 // same logic using MongoDB.
 const users = [
-  // Demo user for the chat feature; password is read from the environment so
-  // no credential is committed to the repo.
-  { name: 'user', password: process.env.CHAT_DEMO_USER_PASSWORD || 'dev-only-change-me' },
-  // The admin password is generated at startup and never persisted.
+  // Demo user for the chat feature; password is read from the environment.
+  // If unset, a random value is generated at startup so no static credential
+  // is committed to the repo and the demo account is unusable until the
+  // operator provides CHAT_DEMO_USER_PASSWORD.
+  { name: 'user', password: process.env.CHAT_DEMO_USER_PASSWORD || Math.random().toString(36).slice(2) },
+  // The admin password is also generated at startup and never persisted.
   { name: 'admin', password: Math.random().toString(32), canDelete: true },
 ];
 
