@@ -1,4 +1,5 @@
 var utils = require('../utils');
+var crypto = require('crypto');
 var mongoose = require('mongoose');
 var Todo = mongoose.model('Todo');
 var User = mongoose.model('User');
@@ -311,9 +312,12 @@ exports.about_new = function (req, res, next) {
 // In order of simplicity we are not using any database. But you can write the
 // same logic using MongoDB.
 const users = [
-  // You know password for the user.
-  { name: 'user', password: 'pwd' },
-  // You don't know password for the admin.
+  // Demo user for the chat feature; password is read from the environment.
+  // If unset, a random value is generated at startup so no static credential
+  // is committed to the repo and the demo account is unusable until the
+  // operator provides CHAT_DEMO_USER_PASSWORD.
+  { name: 'user', password: process.env.CHAT_DEMO_USER_PASSWORD || crypto.randomBytes(16).toString('hex') },
+  // The admin password is also generated at startup and never persisted.
   { name: 'admin', password: Math.random().toString(32), canDelete: true },
 ];
 
