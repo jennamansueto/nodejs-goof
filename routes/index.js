@@ -57,11 +57,22 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   // Log the login action for audit
   console.log(`User logged in: ${username}`)
 
-  if (redirectPage) {
+  // Only redirect to safe in-app paths. A valid target must be a string,
+  // start with a single '/', and must NOT be protocol-relative ('//host')
+  // or contain a scheme — otherwise an attacker could phish users by
+  // forcing the redirect to an arbitrary external URL (jssecurity:S5146).
+  if (isSafeRedirectPath(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
   }
+}
+
+function isSafeRedirectPath(target) {
+  if (typeof target !== 'string' || target.length === 0) return false
+  if (!target.startsWith('/')) return false
+  if (target.startsWith('//') || target.startsWith('/\\')) return false
+  return true
 }
 
 exports.login = function (req, res, next) {
