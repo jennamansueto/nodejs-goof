@@ -19,6 +19,16 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+// Strip CR/LF (and other control characters) from values that originate from
+// user input before they are written to logs, to prevent log-forging where an
+// attacker injects fake log entries via newline characters.
+function sanitizeForLog(value) {
+  if (value === null || value === undefined) {
+    return value;
+  }
+  return String(value).replace(/[\r\n\u2028\u2029]/g, '_');
+}
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -54,8 +64,9 @@ exports.loginHandler = function (req, res, next) {
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  // Log the login action for audit. The username is user-controlled, so it
+  // must be sanitized before being concatenated into a log message.
+  console.log(`User logged in: ${sanitizeForLog(username)}`)
 
   if (redirectPage) {
       return res.redirect(redirectPage)
@@ -296,7 +307,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log(sanitizeForLog(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
