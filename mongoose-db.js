@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
 var cfenv = require("cfenv");
+const crypto = require('node:crypto');
 var Schema = mongoose.Schema;
 
 var Todo = new Schema({
@@ -49,7 +50,11 @@ User.find({ username: 'admin@snyk.io' }).exec(function (err, users) {
   console.log(users);
   if (users.length === 0) {
     console.log('no admin');
-    new User({ username: 'admin@snyk.io', password: 'SuperSecretPassword' }).save(function (err, user, count) {
+    // Read admin seed password from env so a real value is never committed.
+    // If unset, generate a cryptographically random password so no known default
+    // credential is ever stored in the database.
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || crypto.randomBytes(16).toString('hex');
+    new User({ username: 'admin@snyk.io', password: adminPassword }).save(function (err, user, count) {
       if (err) {
         console.log('error saving admin user');
       }

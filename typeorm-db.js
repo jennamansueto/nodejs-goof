@@ -1,4 +1,5 @@
 var typeorm = require("typeorm");
+const crypto = require("node:crypto");
 var EntitySchema = typeorm.EntitySchema;
 
 const Users = require("./entity/Users")
@@ -6,11 +7,14 @@ const Users = require("./entity/Users")
 typeorm.createConnection({
   name: "mysql",
   type: "mysql",
-  host: "localhost",
-  port: 3306,
-  username: "root",
-  password: "root",
-  database: "acme",
+  host: process.env.MYSQL_HOST || "localhost",
+  port: Number(process.env.MYSQL_PORT) || 3306,
+  username: process.env.MYSQL_USER || "root",
+  // Read DB password from env so a real value is never committed to source.
+  // If unset, generate a cryptographically random password at startup so no
+  // known default credential is ever embedded in the source.
+  password: process.env.MYSQL_PASSWORD || crypto.randomBytes(16).toString("hex"),
+  database: process.env.MYSQL_DATABASE || "acme",
   synchronize: true,
   "logging": true,
   entities: [
