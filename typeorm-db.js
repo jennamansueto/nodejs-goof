@@ -6,11 +6,13 @@ const Users = require("./entity/Users")
 typeorm.createConnection({
   name: "mysql",
   type: "mysql",
-  host: "localhost",
-  port: 3306,
-  username: "root",
-  password: "root",
-  database: "acme",
+  host: process.env.MYSQL_HOST || "localhost",
+  port: Number(process.env.MYSQL_PORT) || 3306,
+  username: process.env.MYSQL_USER || "root",
+  // Read DB password from env so a real value is never committed to source.
+  // Fall back to a clearly-non-production placeholder for local development.
+  password: process.env.MYSQL_PASSWORD || "goof-dev-only-change-me",
+  database: process.env.MYSQL_DATABASE || "acme",
   synchronize: true,
   "logging": true,
   entities: [

@@ -40,7 +40,9 @@ app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(methodOverride());
 app.use(session({
-  secret: 'keyboard cat',
+  // Read session secret from env so a real value is never committed to source.
+  // Fall back to a development-only placeholder if SESSION_SECRET is unset.
+  secret: process.env.SESSION_SECRET || 'goof-dev-only-change-me',
   name: 'connect.sid',
   cookie: { path: '/' }
 }))
