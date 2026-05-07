@@ -35,12 +35,15 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+  // Coerce credentials to plain strings to prevent NoSQL operator injection
+  // (e.g., a JSON body sending `{ "$gt": "" }` for password).
+  const username = String(req.body.username || '')
+  const password = String(req.body.password || '')
+  if (validator.isEmail(username)) {
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
-        const username = req.body.username
         return adminLoginSuccess(redirectPage, session, username, res)
       } else {
         return res.status(401).send()
@@ -51,13 +54,27 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
+function sanitizeForLog(value) {
+  return String(value).replace(/[\r\n\t]+/g, ' ')
+}
+
+function isSafeRelativeRedirect(target) {
+  // Allow only same-origin redirects: must start with a single '/' and not be
+  // protocol-relative ('//host') or a backslash-prefixed bypass.
+  return typeof target === 'string'
+    && target.length > 0
+    && target.startsWith('/')
+    && !target.startsWith('//')
+    && !target.startsWith('/\\')
+}
+
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  // Log the login action for audit (sanitize to prevent log injection)
+  console.log(`User logged in: ${sanitizeForLog(username)}`)
 
-  if (redirectPage) {
+  if (isSafeRelativeRedirect(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -103,8 +120,18 @@ exports.save_account_details = function(req, res, next) {
     profile.firstname = validator.rtrim(profile.firstname)
     profile.lastname = validator.rtrim(profile.lastname)
 
+    // Pass only an explicit allow-list of fields to the template engine to
+    // prevent server-side template/path injection via attacker-controlled
+    // properties (e.g., Handlebars `layout`).
+    const safeProfile = {
+      email: profile.email,
+      phone: profile.phone,
+      firstname: profile.firstname,
+      lastname: profile.lastname,
+      country: profile.country
+    }
     // render the view
-    return res.render('account.hbs', profile)
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
@@ -296,7 +323,8 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  // Sanitize before logging to prevent log injection from user-controlled query.
+  console.log(sanitizeForLog(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
