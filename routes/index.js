@@ -2,6 +2,7 @@ var utils = require('../utils');
 var mongoose = require('mongoose');
 var Todo = mongoose.model('Todo');
 var User = mongoose.model('User');
+var crypto = require('crypto');
 // TODO:
 var hms = require('humanize-ms');
 var ms = require('ms');
@@ -311,9 +312,10 @@ exports.about_new = function (req, res, next) {
 // In order of simplicity we are not using any database. But you can write the
 // same logic using MongoDB.
 // Chat user credentials are read from env so real values are never committed.
-// The admin password is generated at startup and never persisted.
+// If CHAT_USER_PASSWORD is unset, a cryptographically random password is
+// generated at startup so no known default credential is ever embedded.
 const users = [
-  { name: 'user', password: process.env.CHAT_USER_PASSWORD || 'goof-dev-only-change-me' },
+  { name: 'user', password: process.env.CHAT_USER_PASSWORD || crypto.randomBytes(16).toString('hex') },
   { name: 'admin', password: Math.random().toString(32), canDelete: true },
 ];
 

@@ -39,10 +39,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(methodOverride());
+// Read session secret from env so a real value is never committed to source.
+// If unset, generate a cryptographically random secret at startup so the app
+// still boots in dev environments without exposing a known default.
+var sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 app.use(session({
-  // Read session secret from env so a real value is never committed to source.
-  // Fall back to a development-only placeholder if SESSION_SECRET is unset.
-  secret: process.env.SESSION_SECRET || 'goof-dev-only-change-me',
+  secret: sessionSecret,
   name: 'connect.sid',
   cookie: { path: '/' }
 }))
