@@ -2,7 +2,7 @@ var utils = require('../utils');
 var mongoose = require('mongoose');
 var Todo = mongoose.model('Todo');
 var User = mongoose.model('User');
-var crypto = require('crypto');
+const crypto = require('node:crypto');
 // TODO:
 var hms = require('humanize-ms');
 var ms = require('ms');

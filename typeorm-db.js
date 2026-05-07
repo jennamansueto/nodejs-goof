@@ -1,5 +1,5 @@
 var typeorm = require("typeorm");
-var crypto = require("crypto");
+const crypto = require("node:crypto");
 var EntitySchema = typeorm.EntitySchema;
 
 const Users = require("./entity/Users")

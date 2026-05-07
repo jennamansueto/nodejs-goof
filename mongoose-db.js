@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
 var cfenv = require("cfenv");
-var crypto = require('crypto');
+const crypto = require('node:crypto');
 var Schema = mongoose.Schema;
 
 var Todo = new Schema({
