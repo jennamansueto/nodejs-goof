@@ -34,14 +34,37 @@ exports.index = function (req, res, next) {
     });
 };
 
+// Sanitize a value before writing it to the application log to defend against
+// log forging (CRLF / control-character injection).
+function sanitizeForLog(value) {
+  return String(value).replace(/[\r\n\t\u0000-\u001F\u007F]+/g, ' ');
+}
+
+// Validate that a redirect target is a relative, same-origin path so that
+// attacker-controlled values cannot send the user to an external host.
+function isSafeRedirectTarget(target) {
+  if (typeof target !== 'string' || target.length === 0) {
+    return false;
+  }
+  // Must be a path on this origin: starts with '/' but is not protocol-relative
+  // ('//evil.example') and is not a backslash-escaped variant.
+  return target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\');
+}
+
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+  // Coerce credentials to strings up-front so attacker-supplied objects (e.g.
+  // `{ "$ne": null }`) cannot be passed through as MongoDB query operators.
+  if (typeof req.body.username !== 'string' || typeof req.body.password !== 'string') {
+    return res.status(401).send()
+  }
+  const usernameInput = req.body.username
+  const passwordInput = req.body.password
+  if (validator.isEmail(usernameInput)) {
+    User.find({ username: usernameInput, password: passwordInput }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
-        const username = req.body.username
-        return adminLoginSuccess(redirectPage, session, username, res)
+        return adminLoginSuccess(redirectPage, session, usernameInput, res)
       } else {
         return res.status(401).send()
       }
@@ -54,10 +77,11 @@ exports.loginHandler = function (req, res, next) {
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  // Log the login action for audit (sanitize the username so attacker-supplied
+  // CR/LF can't forge new log entries).
+  console.log(`User logged in: ${sanitizeForLog(username)}`)
 
-  if (redirectPage) {
+  if (isSafeRedirectTarget(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -103,8 +127,19 @@ exports.save_account_details = function(req, res, next) {
     profile.firstname = validator.rtrim(profile.firstname)
     profile.lastname = validator.rtrim(profile.lastname)
 
+    // Build a whitelisted view model so attacker-controlled keys (notably the
+    // Handlebars `layout` property) cannot redirect rendering to an arbitrary
+    // path on disk.
+    const safeProfile = {
+      email: profile.email,
+      phone: profile.phone,
+      firstname: profile.firstname,
+      lastname: profile.lastname,
+      country: profile.country,
+    }
+
     // render the view
-    return res.render('account.hbs', profile)
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
@@ -296,7 +331,9 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  // Avoid logging raw user-controlled query data; record only that the route
+  // was hit. If diagnostic detail is needed, log a sanitized projection.
+  console.log('about_new route hit; device=' + sanitizeForLog(req.query.device || ''));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
