@@ -37,7 +37,7 @@ exports.index = function (req, res, next) {
 // Sanitize a value before writing it to the application log to defend against
 // log forging (CRLF / control-character injection).
 function sanitizeForLog(value) {
-  return String(value).replace(/[\r\n\t\u0000-\u001F\u007F]+/g, ' ');
+  return String(value).replaceAll(/[\u0000-\u001F\u007F]+/g, ' ');
 }
 
 // Validate that a redirect target is a relative, same-origin path so that
