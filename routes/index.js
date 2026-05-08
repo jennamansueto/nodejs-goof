@@ -52,23 +52,31 @@ function isSafeRedirectTarget(target) {
 }
 
 exports.loginHandler = function (req, res, next) {
-  // Coerce credentials to strings up-front so attacker-supplied objects (e.g.
-  // `{ "$ne": null }`) cannot be passed through as MongoDB query operators.
+  // Coerce credentials to primitive strings up-front so attacker-supplied
+  // objects (e.g. `{ "$ne": null }`) cannot be passed through as MongoDB
+  // query operators. Reject anything that wasn't originally a string outright
+  // so we don't paper over injection attempts.
   if (typeof req.body.username !== 'string' || typeof req.body.password !== 'string') {
     return res.status(401).send()
   }
-  const usernameInput = req.body.username
-  const passwordInput = req.body.password
+  const usernameInput = String(req.body.username)
+  const passwordInput = String(req.body.password)
   if (validator.isEmail(usernameInput)) {
-    User.find({ username: usernameInput, password: passwordInput }, function (err, users) {
-      if (users.length > 0) {
-        const redirectPage = req.body.redirectPage
-        const session = req.session
-        return adminLoginSuccess(redirectPage, session, usernameInput, res)
-      } else {
-        return res.status(401).send()
+    // Use the `$eq` query operator to force an equality match against the
+    // string value and prevent the field from being interpreted as a Mongo
+    // operator object.
+    User.find(
+      { username: { $eq: usernameInput }, password: { $eq: passwordInput } },
+      function (err, users) {
+        if (users.length > 0) {
+          const redirectPage = req.body.redirectPage
+          const session = req.session
+          return adminLoginSuccess(redirectPage, session, usernameInput, res)
+        } else {
+          return res.status(401).send()
+        }
       }
-    });
+    );
   } else {
     return res.status(401).send()
   }
