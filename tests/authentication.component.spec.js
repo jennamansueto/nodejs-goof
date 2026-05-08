@@ -1,4 +1,12 @@
 const assert = require('assert)')
+const crypto = require('crypto')
+
+// Non-secret test fixtures: values are randomly generated per run (or supplied
+// via TEST_PASSWORD_* env vars for deterministic CI runs). They never represent
+// real credentials and are only used to exercise the PasswordComponent logic.
+const fixturePasswordA = process.env.TEST_PASSWORD_A || `${crypto.randomBytes(8).toString('hex')}_a`
+const fixturePasswordB = process.env.TEST_PASSWORD_B || `${crypto.randomBytes(8).toString('hex')}_b`
+const fixturePasswordMatching = process.env.TEST_PASSWORD_MATCH || crypto.randomBytes(8).toString('hex')
 
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
@@ -8,8 +16,8 @@ describe('Component Tests', () => {
 
     test('should show error if passwords do not match', () => {
       // GIVEN
-      comp.password = 'password1';
-      comp.confirmPassword = 'password2';
+      comp.password = fixturePasswordA;
+      comp.confirmPassword = fixturePasswordB;
       // WHEN
       comp.changePassword();
       // THEN
@@ -20,19 +28,18 @@ describe('Component Tests', () => {
 
     test('should call Auth.changePassword when passwords match', () => {
       // GIVEN
-      // deepcode ignore NoHardcodedPasswords/test: <please specify a reason of ignoring this>
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = fixturePasswordMatching;
 
       // WHEN
       comp.changePassword();
 
       // THEN
-      assert(service.save).toHaveBeenCalledWith('myPassword');
+      assert(service.save).toHaveBeenCalledWith(fixturePasswordMatching);
     });
 
     test('should set success to OK upon success', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = fixturePasswordMatching;
 
       // WHEN
       comp.changePassword();
@@ -45,7 +52,7 @@ describe('Component Tests', () => {
 
     test('should notify of error if change password fails', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = fixturePasswordMatching;
 
       // WHEN
       comp.changePassword();
