@@ -1,4 +1,5 @@
 var utils = require('../utils');
+var crypto = require('crypto');
 var mongoose = require('mongoose');
 var Todo = mongoose.model('Todo');
 var User = mongoose.model('User');
@@ -310,11 +311,15 @@ exports.about_new = function (req, res, next) {
 ///////////////////////////////////////////////////////////////////////////////
 // In order of simplicity we are not using any database. But you can write the
 // same logic using MongoDB.
+const chatUserPassword = process.env.CHAT_USER_PASSWORD || crypto.randomBytes(16).toString('hex');
+if (!process.env.CHAT_USER_PASSWORD) {
+  console.warn('CHAT_USER_PASSWORD is not set; using a randomly generated password for the chat user.');
+}
 const users = [
-  // You know password for the user.
-  { name: 'user', password: 'pwd' },
-  // You don't know password for the admin.
-  { name: 'admin', password: Math.random().toString(32), canDelete: true },
+  // Password for the regular user is loaded from CHAT_USER_PASSWORD env var.
+  { name: 'user', password: chatUserPassword },
+  // The admin password is generated at startup and not exposed in source.
+  { name: 'admin', password: crypto.randomBytes(16).toString('hex'), canDelete: true },
 ];
 
 let messages = [];

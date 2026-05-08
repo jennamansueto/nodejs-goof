@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
 var cfenv = require("cfenv");
+var crypto = require('crypto');
 var Schema = mongoose.Schema;
 
 var Todo = new Schema({
@@ -49,7 +50,11 @@ User.find({ username: 'admin@snyk.io' }).exec(function (err, users) {
   console.log(users);
   if (users.length === 0) {
     console.log('no admin');
-    new User({ username: 'admin@snyk.io', password: 'SuperSecretPassword' }).save(function (err, user, count) {
+    var adminPassword = process.env.ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex');
+    if (!process.env.ADMIN_PASSWORD) {
+      console.warn('ADMIN_PASSWORD is not set; seeding admin user with a randomly generated password.');
+    }
+    new User({ username: 'admin@snyk.io', password: adminPassword }).save(function (err, user, count) {
       if (err) {
         console.log('error saving admin user');
       }
