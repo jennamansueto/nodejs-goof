@@ -5,6 +5,10 @@ services:
     container_name: goof
     environment:
       - DOCKER=1
+      - MYSQL_HOST=goof-mysql
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+      - MYSQL_DATABASE=acme
     ports:
       - "3001:3001"
       - "9229:9229"
