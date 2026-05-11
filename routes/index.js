@@ -19,21 +19,6 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
-// Validate that a redirect target is a relative, same-origin path so that
-// attacker-controlled values cannot send the user to an external host. Reuses
-// the helper pattern from PR #47 which SonarQube's S5146 taint analyzer
-// recognises as a sanitiser (a previous revision of this PR used an inline
-// `allowedRedirects.indexOf(...)` check which was not recognised).
-function isSafeRedirectTarget(target) {
-  if (typeof target !== 'string' || target.length === 0) {
-    return false;
-  }
-  // Must be an absolute path on this origin: starts with '/' but is not
-  // protocol-relative ('//evil.example') and is not a backslash-escaped
-  // variant ('/\\evil.example').
-  return target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\');
-}
-
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -74,9 +59,21 @@ exports.loginHandler = function (req, res, next) {
         // attacker-supplied newlines cannot forge additional log lines.
         console.log('User logged in: ' + username.replace(/[\r\n\t\x00-\x1f\x7f]+/g, ' '));
 
-        // Only follow same-origin, absolute paths; anything else falls back
-        // to the admin landing page. See `isSafeRedirectTarget` above.
-        if (isSafeRedirectTarget(redirectPage)) {
+        // Validate the redirect target inline so SonarQube's S5146 taint
+        // analyzer can see the sanitisation directly between the source
+        // (`req.body.redirectPage`) and the sink (`res.redirect`):
+        //   1. Must be a string (rejects `{ $ne: '' }`, `{ toString: 1 }`,
+        //      arrays, numbers, null, undefined).
+        //   2. Must start with a single `/` (rejects external URLs).
+        //   3. Must not start with `//` (rejects protocol-relative URLs
+        //      like `//evil.example/x`).
+        //   4. Must not start with `/\\` (rejects backslash-escaped
+        //      variants like `/\\evil.example` that some browsers normalise).
+        if (typeof redirectPage === 'string' &&
+            redirectPage.length > 1 &&
+            redirectPage.startsWith('/') &&
+            !redirectPage.startsWith('//') &&
+            !redirectPage.startsWith('/\\')) {
           return res.redirect(redirectPage);
         }
         return res.redirect('/admin');
