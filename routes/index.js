@@ -19,49 +19,6 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
-// Remove characters that can be used to forge log entries (CR / LF and other
-// control characters). Used everywhere we need to log user-controlled data.
-function sanitizeForLog(value) {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  return String(value).replace(/[\r\n\t\x00-\x1f\x7f]+/g, ' ');
-}
-
-// A redirect target is only considered safe if it is a same-origin, absolute
-// path. This blocks `//evil.example`, `\\evil.example`, full URLs, and any
-// other open-redirect payloads.
-function isSafeRedirect(target) {
-  if (typeof target !== 'string' || target.length === 0) {
-    return false;
-  }
-  if (target[0] !== '/') {
-    return false;
-  }
-  if (target.length > 1 && (target[1] === '/' || target[1] === '\\')) {
-    return false;
-  }
-  return true;
-}
-
-// Whitelist the fields we render in the account view so user-controlled
-// properties like `layout` (which Handlebars would interpret as a path to a
-// template file on disk) cannot be smuggled through `req.body`.
-var ACCOUNT_PROFILE_FIELDS = ['email', 'phone', 'firstname', 'lastname', 'country'];
-function pickAccountProfile(body) {
-  var out = {};
-  if (!body || typeof body !== 'object') {
-    return out;
-  }
-  for (var i = 0; i < ACCOUNT_PROFILE_FIELDS.length; i++) {
-    var key = ACCOUNT_PROFILE_FIELDS[i];
-    if (Object.prototype.hasOwnProperty.call(body, key)) {
-      out[key] = body[key];
-    }
-  }
-  return out;
-}
-
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -81,15 +38,29 @@ exports.loginHandler = function (req, res, next) {
   // Coerce credentials to plain strings before they reach the Mongo driver so
   // an attacker cannot smuggle in operator objects like `{ $ne: '' }` which
   // would otherwise turn the equality check into an arbitrary query.
-  var username = typeof req.body.username === 'string' ? req.body.username : '';
-  var password = typeof req.body.password === 'string' ? req.body.password : '';
+  var username = (req.body.username || '').toString();
+  var password = (req.body.password || '').toString();
 
   if (validator.isEmail(username)) {
     User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
-        var redirectPage = typeof req.body.redirectPage === 'string' ? req.body.redirectPage : '';
-        var session = req.session;
-        return adminLoginSuccess(redirectPage, session, username, res);
+        var redirectPage = (req.body.redirectPage || '').toString();
+        req.session.loggedIn = 1;
+
+        // Log the login action for audit. Strip CR/LF inline at the sink so
+        // attacker-supplied newlines cannot forge additional log lines.
+        console.log('User logged in: ' + username.replace(/[\r\n\t\x00-\x1f\x7f]+/g, ' '));
+
+        // Only follow same-origin, absolute paths. Anything else (full URLs,
+        // protocol-relative `//evil.example`, backslash-prefixed targets)
+        // falls back to the admin landing page.
+        if (redirectPage.length > 1 &&
+            redirectPage.charAt(0) === '/' &&
+            redirectPage.charAt(1) !== '/' &&
+            redirectPage.charAt(1) !== '\\') {
+          return res.redirect(redirectPage);
+        }
+        return res.redirect('/admin');
       } else {
         return res.status(401).send();
       }
@@ -98,19 +69,6 @@ exports.loginHandler = function (req, res, next) {
     return res.status(401).send();
   }
 };
-
-function adminLoginSuccess(redirectPage, session, username, res) {
-  session.loggedIn = 1;
-
-  // Log the login action for audit. Sanitize the username so attacker-supplied
-  // newlines cannot forge additional log lines.
-  console.log('User logged in: ' + sanitizeForLog(username));
-
-  if (isSafeRedirect(redirectPage)) {
-    return res.redirect(redirectPage);
-  }
-  return res.redirect('/admin');
-}
 
 exports.login = function (req, res, next) {
   return res.render('admin', {
@@ -135,19 +93,27 @@ exports.get_account_details = function(req, res, next) {
 }
 
 exports.save_account_details = function(req, res, next) {
-  // Build a whitelisted profile object so a user-supplied `layout` (or any
-  // other property Handlebars treats as a file path) cannot be smuggled
-  // through `req.body` to trigger path traversal in the template engine.
-  const profile = pickAccountProfile(req.body)
+  // Build the render context from a strict whitelist of expected string fields
+  // so user-supplied properties (notably `layout`, which Handlebars would
+  // interpret as a path to a template file on disk) cannot flow from
+  // `req.body` into the template engine.
+  var body = (req.body && typeof req.body === 'object') ? req.body : {};
+  var profile = {
+    email: (body.email || '').toString(),
+    phone: (body.phone || '').toString(),
+    firstname: (body.firstname || '').toString(),
+    lastname: (body.lastname || '').toString(),
+    country: (body.country || '').toString()
+  };
   // validate the input
-  if (validator.isEmail(profile.email || '', { allow_display_name: true })
+  if (validator.isEmail(profile.email, { allow_display_name: true })
     // allow_display_name allows us to receive input as:
     // Display Name <email-address>
     // which we consider valid too
-    && validator.isMobilePhone(profile.phone || '', 'he-IL')
-    && validator.isAscii(profile.firstname || '')
-    && validator.isAscii(profile.lastname || '')
-    && validator.isAscii(profile.country || '')
+    && validator.isMobilePhone(profile.phone, 'he-IL')
+    && validator.isAscii(profile.firstname)
+    && validator.isAscii(profile.lastname)
+    && validator.isAscii(profile.country)
   ) {
     // trim any extra spaces on the right of the name
     profile.firstname = validator.rtrim(profile.firstname)
@@ -346,9 +312,10 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  // Sanitize the user-controlled query string before logging so attacker-
-  // supplied CR/LF cannot forge additional log entries.
-  console.log(sanitizeForLog(JSON.stringify(req.query)));
+  // Strip CR/LF and other control characters from the user-controlled query
+  // string before logging so attacker-supplied newlines cannot forge
+  // additional log entries.
+  console.log(JSON.stringify(req.query).replace(/[\r\n\t\x00-\x1f\x7f]+/g, ' '));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
