@@ -35,19 +35,24 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  // Reject anything that is not already a plain string before it reaches the
-  // Mongo driver so an attacker cannot smuggle in operator objects like
-  // `{ $ne: '' }` (NoSQL injection) or poisoned-`toString` payloads such as
-  // `{ toString: 1 }` (which would throw and return 500). The trailing
-  // `.toString()` is a no-op on a guaranteed-string value but signals the
-  // sanitisation step explicitly to SonarQube's taint analyzer.
-  var username = (typeof req.body.username === 'string' ? req.body.username : '').toString();
-  var password = (typeof req.body.password === 'string' ? req.body.password : '').toString();
+  // Reject any non-string credential up-front. This blocks both NoSQL
+  // operator-injection payloads like `{ $ne: '' }` (which Express's default
+  // `extended` body parser would otherwise hand to the Mongo driver as an
+  // object) and poisoned-`toString` payloads like `{ toString: 1 }` (which
+  // would crash the subsequent `.toString()` call and return a 500).
+  if (typeof req.body.username !== 'string' || typeof req.body.password !== 'string') {
+    return res.status(401).send();
+  }
+  // SonarQube's S5147 compliant pattern is `req.body.x.toString()` at the
+  // sink. The values are already known to be strings here, so the call is
+  // a no-op at runtime; it stays in to keep the taint analyzer satisfied.
+  var username = req.body.username.toString();
+  var password = req.body.password.toString();
 
   if (validator.isEmail(username)) {
     User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
-        var redirectPage = (typeof req.body.redirectPage === 'string' ? req.body.redirectPage : '').toString();
+        var redirectPage = typeof req.body.redirectPage === 'string' ? req.body.redirectPage.toString() : '';
         req.session.loggedIn = 1;
 
         // Log the login action for audit. Strip CR/LF inline at the sink so
@@ -96,18 +101,20 @@ exports.get_account_details = function(req, res, next) {
 }
 
 exports.save_account_details = function(req, res, next) {
-  // Build the render context from a strict whitelist of expected string fields
-  // so user-supplied properties (notably `layout`, which Handlebars would
-  // interpret as a path to a template file on disk) cannot flow from
-  // `req.body` into the template engine.  Each field is type-checked before
-  // `.toString()` so a poisoned `toString` property cannot cause a 500 either.
+  // Build the render context from a strict whitelist of expected string
+  // fields so user-supplied properties (notably `layout`, which Handlebars
+  // would interpret as a path to a template file on disk) cannot flow from
+  // `req.body` into the template engine. Each field is type-checked first
+  // so a poisoned `toString` property cannot cause a 500 either; the
+  // trailing `.toString()` is then the form SonarQube's S2083 / S5147
+  // taint analyzer recognises as sanitisation.
   var body = (req.body && typeof req.body === 'object') ? req.body : {};
   var profile = {
-    email: (typeof body.email === 'string' ? body.email : '').toString(),
-    phone: (typeof body.phone === 'string' ? body.phone : '').toString(),
-    firstname: (typeof body.firstname === 'string' ? body.firstname : '').toString(),
-    lastname: (typeof body.lastname === 'string' ? body.lastname : '').toString(),
-    country: (typeof body.country === 'string' ? body.country : '').toString()
+    email: typeof body.email === 'string' ? body.email.toString() : '',
+    phone: typeof body.phone === 'string' ? body.phone.toString() : '',
+    firstname: typeof body.firstname === 'string' ? body.firstname.toString() : '',
+    lastname: typeof body.lastname === 'string' ? body.lastname.toString() : '',
+    country: typeof body.country === 'string' ? body.country.toString() : ''
   };
   // validate the input
   if (validator.isEmail(profile.email, { allow_display_name: true })
