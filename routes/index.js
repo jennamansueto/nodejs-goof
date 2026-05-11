@@ -35,34 +35,56 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+  // Reject any non-string credential up-front. This blocks both NoSQL
+  // operator-injection payloads like `{ $ne: '' }` (which Express's default
+  // `extended` body parser would otherwise hand to the Mongo driver as an
+  // object) and poisoned-`toString` payloads like `{ toString: 1 }` (which
+  // would crash the subsequent `.toString()` call and return a 500).
+  if (typeof req.body.username !== 'string' || typeof req.body.password !== 'string') {
+    return res.status(401).send();
+  }
+  // SonarQube's S5147 compliant pattern is `req.body.x.toString()` at the
+  // sink. The values are already known to be strings here, so the call is
+  // a no-op at runtime; it stays in to keep the taint analyzer satisfied.
+  var username = req.body.username.toString();
+  var password = req.body.password.toString();
+
+  if (validator.isEmail(username)) {
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
-        const redirectPage = req.body.redirectPage
-        const session = req.session
-        const username = req.body.username
-        return adminLoginSuccess(redirectPage, session, username, res)
+        var redirectPage = req.body.redirectPage;
+        req.session.loggedIn = 1;
+
+        // Log the login action for audit. Strip CR/LF inline at the sink so
+        // attacker-supplied newlines cannot forge additional log lines.
+        console.log('User logged in: ' + username.replace(/[\r\n\t\x00-\x1f\x7f]+/g, ' '));
+
+        // Validate the redirect target inline so SonarQube's S5146 taint
+        // analyzer can see the sanitisation directly between the source
+        // (`req.body.redirectPage`) and the sink (`res.redirect`):
+        //   1. Must be a string (rejects `{ $ne: '' }`, `{ toString: 1 }`,
+        //      arrays, numbers, null, undefined).
+        //   2. Must start with a single `/` (rejects external URLs).
+        //   3. Must not start with `//` (rejects protocol-relative URLs
+        //      like `//evil.example/x`).
+        //   4. Must not start with `/\\` (rejects backslash-escaped
+        //      variants like `/\\evil.example` that some browsers normalise).
+        if (typeof redirectPage === 'string' &&
+            redirectPage.length > 0 &&
+            redirectPage.startsWith('/') &&
+            !redirectPage.startsWith('//') &&
+            !redirectPage.startsWith('/\\')) {
+          return res.redirect(redirectPage);
+        }
+        return res.redirect('/admin');
       } else {
-        return res.status(401).send()
+        return res.status(401).send();
       }
     });
   } else {
-    return res.status(401).send()
+    return res.status(401).send();
   }
 };
-
-function adminLoginSuccess(redirectPage, session, username, res) {
-  session.loggedIn = 1
-
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
-
-  if (redirectPage) {
-      return res.redirect(redirectPage)
-  } else {
-      return res.redirect('/admin')
-  }
-}
 
 exports.login = function (req, res, next) {
   return res.render('admin', {
@@ -87,8 +109,21 @@ exports.get_account_details = function(req, res, next) {
 }
 
 exports.save_account_details = function(req, res, next) {
-  // get the profile details from the JSON
-	const profile = req.body
+  // Build the render context from a strict whitelist of expected string
+  // fields so user-supplied properties (notably `layout`, which Handlebars
+  // would interpret as a path to a template file on disk) cannot flow from
+  // `req.body` into the template engine. Each field is type-checked first
+  // so a poisoned `toString` property cannot cause a 500 either; the
+  // trailing `.toString()` is then the form SonarQube's S2083 / S5147
+  // taint analyzer recognises as sanitisation.
+  var body = (req.body && typeof req.body === 'object') ? req.body : {};
+  var profile = {
+    email: typeof body.email === 'string' ? body.email.toString() : '',
+    phone: typeof body.phone === 'string' ? body.phone.toString() : '',
+    firstname: typeof body.firstname === 'string' ? body.firstname.toString() : '',
+    lastname: typeof body.lastname === 'string' ? body.lastname.toString() : '',
+    country: typeof body.country === 'string' ? body.country.toString() : ''
+  };
   // validate the input
   if (validator.isEmail(profile.email, { allow_display_name: true })
     // allow_display_name allows us to receive input as:
@@ -296,7 +331,10 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  // Strip CR/LF and other control characters from the user-controlled query
+  // string before logging so attacker-supplied newlines cannot forge
+  // additional log entries.
+  console.log(JSON.stringify(req.query).replace(/[\r\n\t\x00-\x1f\x7f]+/g, ' '));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
