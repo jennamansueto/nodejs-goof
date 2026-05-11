@@ -70,7 +70,7 @@ exports.loginHandler = function (req, res, next) {
         //   4. Must not start with `/\\` (rejects backslash-escaped
         //      variants like `/\\evil.example` that some browsers normalise).
         if (typeof redirectPage === 'string' &&
-            redirectPage.length > 1 &&
+            redirectPage.length > 0 &&
             redirectPage.startsWith('/') &&
             !redirectPage.startsWith('//') &&
             !redirectPage.startsWith('/\\')) {
