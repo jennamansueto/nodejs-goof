@@ -39,8 +39,15 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(methodOverride());
+if (!process.env.SESSION_SECRET) {
+  console.warn(
+    'WARNING: SESSION_SECRET env var is not set. Generating an ephemeral random secret; ' +
+    'all sessions will be invalidated on restart and behind a multi-process load balancer ' +
+    'users will see intermittent auth failures. Set SESSION_SECRET in any deployed environment.'
+  );
+}
 app.use(session({
-  secret: 'keyboard cat',
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
   name: 'connect.sid',
   cookie: { path: '/' }
 }))
