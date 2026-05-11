@@ -59,13 +59,13 @@ exports.loginHandler = function (req, res, next) {
         // attacker-supplied newlines cannot forge additional log lines.
         console.log('User logged in: ' + username.replace(/[\r\n\t\x00-\x1f\x7f]+/g, ' '));
 
-        // Only follow same-origin, absolute paths. Anything else (full URLs,
-        // protocol-relative `//evil.example`, backslash-prefixed targets)
-        // falls back to the admin landing page.
-        if (redirectPage.length > 1 &&
-            redirectPage.charAt(0) === '/' &&
-            redirectPage.charAt(1) !== '/' &&
-            redirectPage.charAt(1) !== '\\') {
+        // Validate redirect targets against a static allow-list of known
+        // internal pages. SonarQube's S5146 rule explicitly recommends an
+        // allow-list approach over heuristic prefix checks; this also
+        // closes off open-redirect attacks like `//evil.example/x` or
+        // `https://evil.example` regardless of how they're encoded.
+        var allowedRedirects = ['/admin', '/login', '/logout', '/account', '/'];
+        if (allowedRedirects.indexOf(redirectPage) !== -1) {
           return res.redirect(redirectPage);
         }
         return res.redirect('/admin');
