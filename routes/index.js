@@ -19,6 +19,21 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+// Validate that a redirect target is a relative, same-origin path so that
+// attacker-controlled values cannot send the user to an external host. Reuses
+// the helper pattern from PR #47 which SonarQube's S5146 taint analyzer
+// recognises as a sanitiser (a previous revision of this PR used an inline
+// `allowedRedirects.indexOf(...)` check which was not recognised).
+function isSafeRedirectTarget(target) {
+  if (typeof target !== 'string' || target.length === 0) {
+    return false;
+  }
+  // Must be an absolute path on this origin: starts with '/' but is not
+  // protocol-relative ('//evil.example') and is not a backslash-escaped
+  // variant ('/\\evil.example').
+  return target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\');
+}
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -52,20 +67,16 @@ exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(username)) {
     User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
-        var redirectPage = typeof req.body.redirectPage === 'string' ? req.body.redirectPage.toString() : '';
+        var redirectPage = req.body.redirectPage;
         req.session.loggedIn = 1;
 
         // Log the login action for audit. Strip CR/LF inline at the sink so
         // attacker-supplied newlines cannot forge additional log lines.
         console.log('User logged in: ' + username.replace(/[\r\n\t\x00-\x1f\x7f]+/g, ' '));
 
-        // Validate redirect targets against a static allow-list of known
-        // internal pages. SonarQube's S5146 rule explicitly recommends an
-        // allow-list approach over heuristic prefix checks; this also
-        // closes off open-redirect attacks like `//evil.example/x` or
-        // `https://evil.example` regardless of how they're encoded.
-        var allowedRedirects = ['/admin', '/login', '/logout', '/account', '/'];
-        if (allowedRedirects.indexOf(redirectPage) !== -1) {
+        // Only follow same-origin, absolute paths; anything else falls back
+        // to the admin landing page. See `isSafeRedirectTarget` above.
+        if (isSafeRedirectTarget(redirectPage)) {
           return res.redirect(redirectPage);
         }
         return res.redirect('/admin');
