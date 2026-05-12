@@ -34,11 +34,13 @@ exports.index = function (req, res, next) {
     });
 };
 
-// Accept only relative paths beginning with a single forward slash. Rejecting
-// protocol-relative URLs (//evil.com), absolute URLs (http://evil.com) and
-// non-string values prevents open-redirect attacks via the redirectPage param.
+// Accept only relative paths beginning with a single forward slash. The second
+// character must not be '/' or '\' — per the WHATWG URL spec, '\' is treated
+// like '/' in http(s), so '/\evil.com' resolves to '//evil.com' and would
+// otherwise smuggle an off-host redirect through this check. Non-string values
+// and absolute URLs (http://evil.com) are rejected outright.
 function isSafeRedirect(target) {
-  return typeof target === 'string' && /^\/(?!\/)/.test(target);
+  return typeof target === 'string' && /^\/(?![\/\\])/.test(target);
 }
 
 // Strip CR/LF so user-controlled strings can't forge log lines.
