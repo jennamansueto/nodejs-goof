@@ -1,4 +1,9 @@
 const assert = require('assert)')
+const crypto = require('crypto')
+
+// Generate fresh fixtures per run so no credential-like literal is committed.
+const TEST_PASSWORD = `pw-${crypto.randomBytes(8).toString('hex')}`
+const TEST_PASSWORD_ALT = `pw-${crypto.randomBytes(8).toString('hex')}`
 
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
@@ -8,8 +13,8 @@ describe('Component Tests', () => {
 
     test('should show error if passwords do not match', () => {
       // GIVEN
-      comp.password = 'password1';
-      comp.confirmPassword = 'password2';
+      comp.password = TEST_PASSWORD;
+      comp.confirmPassword = TEST_PASSWORD_ALT;
       // WHEN
       comp.changePassword();
       // THEN
@@ -20,19 +25,18 @@ describe('Component Tests', () => {
 
     test('should call Auth.changePassword when passwords match', () => {
       // GIVEN
-      // deepcode ignore NoHardcodedPasswords/test: <please specify a reason of ignoring this>
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_PASSWORD;
 
       // WHEN
       comp.changePassword();
 
       // THEN
-      assert(service.save).toHaveBeenCalledWith('myPassword');
+      assert(service.save).toHaveBeenCalledWith(TEST_PASSWORD);
     });
 
     test('should set success to OK upon success', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_PASSWORD;
 
       // WHEN
       comp.changePassword();
@@ -45,7 +49,7 @@ describe('Component Tests', () => {
 
     test('should notify of error if change password fails', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_PASSWORD;
 
       // WHEN
       comp.changePassword();
