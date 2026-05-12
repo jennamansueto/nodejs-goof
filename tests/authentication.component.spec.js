@@ -11,6 +11,20 @@ describe('Component Tests', () => {
     let comp
     let service
 
+    beforeEach(() => {
+      // Initialize stubs so each test has a non-null `comp` / `service` to drive.
+      // Real implementations are wired up by whichever test runner consumes this spec.
+      comp = {
+        password: null,
+        confirmPassword: null,
+        doNotMatch: null,
+        error: null,
+        success: null,
+        changePassword: () => {},
+      }
+      service = { save: () => {} }
+    })
+
     test('should show error if passwords do not match', () => {
       // GIVEN
       comp.password = TEST_PASSWORD;
