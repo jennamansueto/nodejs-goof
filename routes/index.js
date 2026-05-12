@@ -34,13 +34,30 @@ exports.index = function (req, res, next) {
     });
 };
 
+// Accept only relative paths beginning with a single forward slash. The second
+// character must not be '/' or '\' — per the WHATWG URL spec, '\' is treated
+// like '/' in http(s), so '/\evil.com' resolves to '//evil.com' and would
+// otherwise smuggle an off-host redirect through this check. Non-string values
+// and absolute URLs (http://evil.com) are rejected outright.
+function isSafeRedirect(target) {
+  return typeof target === 'string' && /^\/(?![\/\\])/.test(target);
+}
+
+// Strip CR/LF so user-controlled strings can't forge log lines.
+function sanitizeForLog(value) {
+  return String(value == null ? '' : value).replace(/[\r\n]/g, ' ');
+}
+
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    // Coerce credentials to plain strings so the query cannot be hijacked by
+    // Mongo operator objects (e.g. { $gt: '' }) submitted as JSON.
+    var username = String(req.body.username);
+    var password = String(req.body.password == null ? '' : req.body.password);
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
-        const username = req.body.username
         return adminLoginSuccess(redirectPage, session, username, res)
       } else {
         return res.status(401).send()
@@ -55,9 +72,9 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log(`User logged in: ${sanitizeForLog(username)}`)
 
-  if (redirectPage) {
+  if (isSafeRedirect(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -103,8 +120,17 @@ exports.save_account_details = function(req, res, next) {
     profile.firstname = validator.rtrim(profile.firstname)
     profile.lastname = validator.rtrim(profile.lastname)
 
-    // render the view
-    return res.render('account.hbs', profile)
+    // Whitelist the fields the template renders so attacker-controlled keys
+    // (notably Handlebars' magic `layout` option) cannot pull arbitrary files
+    // into the response.
+    var safeProfile = {
+      email: profile.email,
+      phone: profile.phone,
+      firstname: profile.firstname,
+      lastname: profile.lastname,
+      country: profile.country,
+    }
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
@@ -296,7 +322,8 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  // Strip CR/LF from the user-controlled query string before logging.
+  console.log(sanitizeForLog(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
