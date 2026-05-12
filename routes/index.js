@@ -1,3 +1,4 @@
+var crypto = require('crypto');
 var utils = require('../utils');
 var mongoose = require('mongoose');
 var Todo = mongoose.model('Todo');
@@ -311,10 +312,17 @@ exports.about_new = function (req, res, next) {
 // In order of simplicity we are not using any database. But you can write the
 // same logic using MongoDB.
 const users = [
-  // You know password for the user.
-  { name: 'user', password: 'pwd' },
-  // You don't know password for the admin.
-  { name: 'admin', password: Math.random().toString(32), canDelete: true },
+  // Credentials are loaded from environment variables; sensible dev fallbacks are
+  // generated at startup so the demo app remains runnable without configuration.
+  {
+    name: 'user',
+    password: process.env.CHAT_USER_PASSWORD || crypto.randomBytes(16).toString('hex'),
+  },
+  {
+    name: 'admin',
+    password: process.env.CHAT_ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex'),
+    canDelete: true,
+  },
 ];
 
 let messages = [];
