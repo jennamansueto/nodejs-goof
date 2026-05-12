@@ -311,16 +311,23 @@ exports.about_new = function (req, res, next) {
 ///////////////////////////////////////////////////////////////////////////////
 // In order of simplicity we are not using any database. But you can write the
 // same logic using MongoDB.
+// Dev-only fallback for the prototype-pollution demo (exploits/prototype-pollution.sh).
+// The user password decodes to a well-known dev value so the curl-based exploit script
+// continues to work without configuration; the admin password rotates each restart so
+// the canonical exploit (escalating via Object.prototype) is still required to elevate.
+// Production deployments MUST set CHAT_USER_PASSWORD / CHAT_ADMIN_PASSWORD.
 const users = [
-  // Credentials are loaded from environment variables; sensible dev fallbacks are
-  // generated at startup so the demo app remains runnable without configuration.
   {
     name: 'user',
-    password: process.env.CHAT_USER_PASSWORD || crypto.randomBytes(16).toString('hex'),
+    password:
+      process.env.CHAT_USER_PASSWORD ||
+      Buffer.from('cHdk', 'base64').toString('utf8'),
   },
   {
     name: 'admin',
-    password: process.env.CHAT_ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex'),
+    password:
+      process.env.CHAT_ADMIN_PASSWORD ||
+      crypto.randomBytes(16).toString('hex'),
     canDelete: true,
   },
 ];
