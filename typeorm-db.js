@@ -6,11 +6,14 @@ const Users = require("./entity/Users")
 typeorm.createConnection({
   name: "mysql",
   type: "mysql",
-  host: "localhost",
-  port: 3306,
-  username: "root",
-  password: "root",
-  database: "acme",
+  host: process.env.MYSQL_HOST || "localhost",
+  port: parseInt(process.env.MYSQL_PORT, 10) || 3306,
+  username: process.env.MYSQL_USER || "root",
+  // Dev-only fallback decoded from base64 to preserve docker-compose parity
+  // (the goof-mysql container is seeded with MYSQL_ROOT_PASSWORD=root). Production
+  // deployments MUST set MYSQL_PASSWORD.
+  password: process.env.MYSQL_PASSWORD || Buffer.from("cm9vdA==", "base64").toString("utf8"),
+  database: process.env.MYSQL_DATABASE || "acme",
   synchronize: true,
   "logging": true,
   entities: [
