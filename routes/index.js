@@ -19,10 +19,13 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
-// Strip CR/LF (and other control chars) from a value before logging it so an
-// attacker can't forge or split log lines via user-controlled input (S5145).
+// Strip CR/LF (and other control / Unicode line-separator chars) from a value
+// before logging it so an attacker can't forge or split log lines via
+// user-controlled input (S5145). Covers C0 controls, DEL, and the Unicode
+// line/paragraph separators U+0085, U+2028 and U+2029 as defence-in-depth for
+// log consumers that interpret them as newlines.
 function sanitizeForLog(value) {
-  return String(value == null ? '' : value).replace(/[\r\n\u0000-\u001F\u007F]+/g, ' ');
+  return String(value == null ? '' : value).replace(/[\r\n\u0000-\u001F\u007F\u0085\u2028\u2029]+/g, ' ');
 }
 
 // Allow only same-origin, single-leading-slash relative paths as redirect
