@@ -35,20 +35,29 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
-      if (users.length > 0) {
-        const redirectPage = req.body.redirectPage
-        const session = req.session
-        const username = req.body.username
-        return adminLoginSuccess(redirectPage, session, username, res)
-      } else {
-        return res.status(401).send()
-      }
-    });
-  } else {
+  // Type-guard credentials before they reach Mongoose. Without this an attacker
+  // can pass an object such as { $gt: '' } as the username or password and turn
+  // the equality check into a NoSQL operator match (SonarQube S5147).
+  var usernameInput = req.body && req.body.username
+  var passwordInput = req.body && req.body.password
+  if (typeof usernameInput !== 'string' || typeof passwordInput !== 'string') {
     return res.status(401).send()
   }
+  if (!validator.isEmail(usernameInput)) {
+    return res.status(401).send()
+  }
+  // Force primitive-equality semantics by wrapping each value in an explicit
+  // $eq operator so the query can never be coerced into another operator.
+  User.find({ username: { $eq: usernameInput }, password: { $eq: passwordInput } }, function (err, users) {
+    if (users.length > 0) {
+      const redirectPage = req.body.redirectPage
+      const session = req.session
+      const username = usernameInput
+      return adminLoginSuccess(redirectPage, session, username, res)
+    } else {
+      return res.status(401).send()
+    }
+  });
 };
 
 function adminLoginSuccess(redirectPage, session, username, res) {
@@ -88,7 +97,7 @@ exports.get_account_details = function(req, res, next) {
 
 exports.save_account_details = function(req, res, next) {
   // get the profile details from the JSON
-	const profile = req.body
+	const profile = req.body || {}
   // validate the input
   if (validator.isEmail(profile.email, { allow_display_name: true })
     // allow_display_name allows us to receive input as:
@@ -99,12 +108,20 @@ exports.save_account_details = function(req, res, next) {
     && validator.isAscii(profile.lastname)
     && validator.isAscii(profile.country)
   ) {
-    // trim any extra spaces on the right of the name
-    profile.firstname = validator.rtrim(profile.firstname)
-    profile.lastname = validator.rtrim(profile.lastname)
+    // Build an explicit allow-list of view-locals so user-controlled keys such
+    // as Handlebars' `layout` cannot be forwarded into res.render and trigger
+    // arbitrary template/file inclusion (SonarQube S2083). Each value is also
+    // coerced to a primitive string before it reaches the renderer.
+    const safeProfile = {
+      email: String(profile.email),
+      phone: String(profile.phone),
+      firstname: validator.rtrim(String(profile.firstname)),
+      lastname: validator.rtrim(String(profile.lastname)),
+      country: String(profile.country),
+    }
 
     // render the view
-    return res.render('account.hbs', profile)
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
