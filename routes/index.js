@@ -316,8 +316,18 @@ exports.about_new = function (req, res, next) {
 //
 // Chat-user credentials are sourced from environment variables. A random
 // fallback is generated at startup so no static credential is shipped in code.
+// In non-production environments the generated values are logged once so the
+// chat demo stays usable; production environments must supply the env vars.
 const chatUserPassword = process.env.CHAT_USER_PASSWORD || crypto.randomBytes(12).toString('hex');
 const chatAdminPassword = process.env.CHAT_ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex');
+if (process.env.NODE_ENV !== 'production') {
+  if (!process.env.CHAT_USER_PASSWORD) {
+    console.log('CHAT_USER_PASSWORD not set; dev password for chat "user": ' + chatUserPassword);
+  }
+  if (!process.env.CHAT_ADMIN_PASSWORD) {
+    console.log('CHAT_ADMIN_PASSWORD not set; dev password for chat "admin": ' + chatAdminPassword);
+  }
+}
 
 const users = [
   { name: 'user', password: chatUserPassword },
