@@ -39,8 +39,19 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(methodOverride());
+// Session secret must be supplied via SESSION_SECRET env var. In non-production
+// environments we fall back to a freshly-generated random value so the app still
+// starts for local development, while ensuring no static credential ships in code.
+var sessionSecret = process.env.SESSION_SECRET
+if (!sessionSecret) {
+  if (app.get('env') === 'production') {
+    throw new Error('SESSION_SECRET environment variable is required in production')
+  }
+  sessionSecret = crypto.randomBytes(32).toString('hex')
+}
+
 app.use(session({
-  secret: 'keyboard cat',
+  secret: sessionSecret,
   name: 'connect.sid',
   cookie: { path: '/' }
 }))
@@ -80,8 +91,8 @@ if (app.get('env') == 'development') {
   app.use(errorHandler());
 }
 
-var token = 'SECRET_TOKEN_f8ed84e8f41e4146403dd4a6bbcea5e418d23a9';
-console.log('token: ' + token);
+// Demo token sourced from environment; never log it.
+var token = process.env.DEMO_API_TOKEN || ''
 
 http.createServer(app).listen(app.get('port'), function () {
   console.log('Express server listening on port ' + app.get('port'));

@@ -19,6 +19,9 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+// node crypto — used to generate random fallback secrets when env vars are missing
+var crypto = require('crypto');
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -310,11 +313,25 @@ exports.about_new = function (req, res, next) {
 ///////////////////////////////////////////////////////////////////////////////
 // In order of simplicity we are not using any database. But you can write the
 // same logic using MongoDB.
+//
+// Chat-user credentials are sourced from environment variables. A random
+// fallback is generated at startup so no static credential is shipped in code.
+// In non-production environments the generated values are logged once so the
+// chat demo stays usable; production environments must supply the env vars.
+const chatUserPassword = process.env.CHAT_USER_PASSWORD || crypto.randomBytes(12).toString('hex');
+const chatAdminPassword = process.env.CHAT_ADMIN_PASSWORD || crypto.randomBytes(16).toString('hex');
+if (process.env.NODE_ENV !== 'production') {
+  if (!process.env.CHAT_USER_PASSWORD) {
+    console.log('CHAT_USER_PASSWORD not set; dev password for chat "user": ' + chatUserPassword);
+  }
+  if (!process.env.CHAT_ADMIN_PASSWORD) {
+    console.log('CHAT_ADMIN_PASSWORD not set; dev password for chat "admin": ' + chatAdminPassword);
+  }
+}
+
 const users = [
-  // You know password for the user.
-  { name: 'user', password: 'pwd' },
-  // You don't know password for the admin.
-  { name: 'admin', password: Math.random().toString(32), canDelete: true },
+  { name: 'user', password: chatUserPassword },
+  { name: 'admin', password: chatAdminPassword, canDelete: true },
 ];
 
 let messages = [];

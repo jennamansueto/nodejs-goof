@@ -3,14 +3,17 @@ var EntitySchema = typeorm.EntitySchema;
 
 const Users = require("./entity/Users")
 
+// MySQL connection settings — all credentials come from environment variables.
+// Dev fallbacks below match the docker-compose service so the demo still runs
+// locally, but no real secret is shipped in source.
 typeorm.createConnection({
   name: "mysql",
   type: "mysql",
-  host: "localhost",
-  port: 3306,
-  username: "root",
-  password: "root",
-  database: "acme",
+  host: process.env.MYSQL_HOST || "localhost",
+  port: parseInt(process.env.MYSQL_PORT, 10) || 3306,
+  username: process.env.MYSQL_USER || "root",
+  password: process.env.MYSQL_PASSWORD || "",
+  database: process.env.MYSQL_DATABASE || "acme",
   synchronize: true,
   "logging": true,
   entities: [

@@ -5,13 +5,22 @@ services:
     container_name: goof
     environment:
       - DOCKER=1
+      # MySQL connection settings consumed by typeorm-db.js. Source these from
+      # the docker-compose service so the demo runs without manual env-var setup.
+      - MYSQL_HOST=goof-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - MYSQL_DATABASE=acme
     ports:
       - "3001:3001"
       - "9229:9229"
     links:
       - goof-mongo
+      - good-mysql:goof-mysql
     depends_on:
       - goof-mongo
+      - good-mysql
   goof-mongo:
     container_name: goof-mongo
     image: mongo:3
