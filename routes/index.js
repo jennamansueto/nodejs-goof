@@ -38,8 +38,8 @@ exports.loginHandler = function (req, res, next) {
   // Type-guard credentials before they reach Mongoose. Without this an attacker
   // can pass an object such as { $gt: '' } as the username or password and turn
   // the equality check into a NoSQL operator match (SonarQube S5147).
-  var usernameInput = req.body && req.body.username
-  var passwordInput = req.body && req.body.password
+  const usernameInput = req.body && req.body.username
+  const passwordInput = req.body && req.body.password
   if (typeof usernameInput !== 'string' || typeof passwordInput !== 'string') {
     return res.status(401).send()
   }
@@ -49,7 +49,8 @@ exports.loginHandler = function (req, res, next) {
   // Force primitive-equality semantics by wrapping each value in an explicit
   // $eq operator so the query can never be coerced into another operator.
   User.find({ username: { $eq: usernameInput }, password: { $eq: passwordInput } }, function (err, users) {
-    if (users.length > 0) {
+    if (err) return next(err)
+    if (users && users.length > 0) {
       const redirectPage = req.body.redirectPage
       const session = req.session
       const username = usernameInput
