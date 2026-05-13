@@ -19,6 +19,26 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+// Strip CR/LF (and other control / Unicode line-separator chars) from a value
+// before logging it so an attacker can't forge or split log lines via
+// user-controlled input (S5145). Covers C0 controls, DEL, and the Unicode
+// line/paragraph separators U+0085, U+2028 and U+2029 as defence-in-depth for
+// log consumers that interpret them as newlines.
+function sanitizeForLog(value) {
+  return String(value == null ? '' : value).replace(/[\r\n\u0000-\u001F\u007F\u0085\u2028\u2029]+/g, ' ');
+}
+
+// Allow only same-origin, single-leading-slash relative paths as redirect
+// targets so an attacker can't force the browser off-site via the redirectPage
+// query/body parameter (S5146).
+function isSafeRedirectTarget(target) {
+  if (typeof target !== 'string' || target.length === 0) return false;
+  if (target[0] !== '/') return false;
+  // Reject protocol-relative URLs like //evil.com and backslash variants like /\evil.com
+  if (target[1] === '/' || target[1] === '\\') return false;
+  return true;
+}
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -35,29 +55,47 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
-      if (users.length > 0) {
-        const redirectPage = req.body.redirectPage
-        const session = req.session
-        const username = req.body.username
-        return adminLoginSuccess(redirectPage, session, username, res)
-      } else {
-        return res.status(401).send()
-      }
-    });
-  } else {
+  // Type-guard credentials before they reach Mongoose. Without this an attacker
+  // can pass an object such as { $gt: '' } as the username or password and turn
+  // the equality check into a NoSQL operator match (SonarQube S5147).
+  const usernameInput = req.body && req.body.username
+  const passwordInput = req.body && req.body.password
+  if (typeof usernameInput !== 'string' || typeof passwordInput !== 'string') {
     return res.status(401).send()
   }
+  if (!validator.isEmail(usernameInput)) {
+    return res.status(401).send()
+  }
+  // Force primitive-equality semantics by coercing each value to a primitive
+  // string with String() and wrapping it in an explicit $eq operator so the
+  // query can never be coerced into another operator. The explicit String()
+  // also signals to SonarQube's taint analysis that the inputs are sanitised
+  // before they reach the Mongoose sink (S5147).
+  const safeUsername = String(usernameInput)
+  const safePassword = String(passwordInput)
+  User.find({ username: { $eq: safeUsername }, password: { $eq: safePassword } }, function (err, users) {
+    if (err) return next(err)
+    if (users && users.length > 0) {
+      const redirectPage = req.body.redirectPage
+      const session = req.session
+      const username = usernameInput
+      return adminLoginSuccess(redirectPage, session, username, res)
+    } else {
+      return res.status(401).send()
+    }
+  });
 };
 
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  // Log the login action for audit. Sanitize the username so newline/control
+  // characters can't be used to forge additional log entries (S5145).
+  console.log('User logged in: ' + sanitizeForLog(username))
 
-  if (redirectPage) {
+  // Only follow user-supplied redirect targets that point at the same origin
+  // (S5146). Anything else falls back to the safe default.
+  if (isSafeRedirectTarget(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -88,7 +126,7 @@ exports.get_account_details = function(req, res, next) {
 
 exports.save_account_details = function(req, res, next) {
   // get the profile details from the JSON
-	const profile = req.body
+	const profile = req.body || {}
   // validate the input
   if (validator.isEmail(profile.email, { allow_display_name: true })
     // allow_display_name allows us to receive input as:
@@ -99,12 +137,20 @@ exports.save_account_details = function(req, res, next) {
     && validator.isAscii(profile.lastname)
     && validator.isAscii(profile.country)
   ) {
-    // trim any extra spaces on the right of the name
-    profile.firstname = validator.rtrim(profile.firstname)
-    profile.lastname = validator.rtrim(profile.lastname)
+    // Build an explicit allow-list of view-locals so user-controlled keys such
+    // as Handlebars' `layout` cannot be forwarded into res.render and trigger
+    // arbitrary template/file inclusion (SonarQube S2083). Each value is also
+    // coerced to a primitive string before it reaches the renderer.
+    const safeProfile = {
+      email: String(profile.email),
+      phone: String(profile.phone),
+      firstname: validator.rtrim(String(profile.firstname)),
+      lastname: validator.rtrim(String(profile.lastname)),
+      country: String(profile.country),
+    }
 
     // render the view
-    return res.render('account.hbs', profile)
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
@@ -296,7 +342,8 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  // Sanitize the stringified query before logging it (S5145).
+  console.log(sanitizeForLog(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
