@@ -17,6 +17,22 @@ describe('Component Tests', () => {
     let matching
 
     beforeEach(() => {
+      // Initialise comp / service to stub objects so the property accesses below
+      // (e.g. comp.password = ...) don't dereference an undefined value. This
+      // also clears the pre-existing SonarQube S2259 "TypeError can be thrown"
+      // warnings that were attached to these symbols.
+      comp = {
+        password: null,
+        confirmPassword: null,
+        doNotMatch: null,
+        error: null,
+        success: null,
+        changePassword: () => {},
+      }
+      service = {
+        save: () => {},
+      }
+
       mismatchA = randomPassword()
       mismatchB = randomPassword()
       matching = randomPassword()
