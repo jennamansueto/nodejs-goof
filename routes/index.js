@@ -58,7 +58,7 @@ function sanitizeLogInput(str) {
 
 function isSafeRedirect(url) {
   if (typeof url !== 'string') return false;
-  return url.startsWith('/') && !url.startsWith('//');
+  return url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\');
 }
 
 function adminLoginSuccess(redirectPage, session, username, res) {
