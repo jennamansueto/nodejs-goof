@@ -35,8 +35,8 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  var username = typeof req.body.username === 'string' ? req.body.username : '';
-  var password = typeof req.body.password === 'string' ? req.body.password : '';
+  const username = req.body.username != null ? String(req.body.username) : '';
+  const password = req.body.password != null ? String(req.body.password) : '';
   if (validator.isEmail(username)) {
     User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
