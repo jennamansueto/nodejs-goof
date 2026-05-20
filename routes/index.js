@@ -51,13 +51,22 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
+function sanitizeLogInput(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[\r\n\t\x00-\x1f\x7f]/g, '_');
+}
+
+function isSafeRedirect(url) {
+  if (typeof url !== 'string') return false;
+  return url.startsWith('/') && !url.startsWith('//');
+}
+
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log('User logged in: ' + sanitizeLogInput(username))
 
-  if (redirectPage) {
+  if (redirectPage && isSafeRedirect(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -296,7 +305,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log(sanitizeLogInput(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
