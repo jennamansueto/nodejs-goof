@@ -35,8 +35,10 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
-  if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+  var username = typeof req.body.username === 'string' ? req.body.username : '';
+  var password = typeof req.body.password === 'string' ? req.body.password : '';
+  if (validator.isEmail(username)) {
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -87,8 +89,15 @@ exports.get_account_details = function(req, res, next) {
 }
 
 exports.save_account_details = function(req, res, next) {
-  // get the profile details from the JSON
-	const profile = req.body
+  // get the profile details from the JSON — extract only known fields
+  // to prevent template engine path traversal via properties like 'layout'
+	const profile = {
+    email: req.body.email,
+    phone: req.body.phone,
+    firstname: req.body.firstname,
+    lastname: req.body.lastname,
+    country: req.body.country
+  }
   // validate the input
   if (validator.isEmail(profile.email, { allow_display_name: true })
     // allow_display_name allows us to receive input as:
