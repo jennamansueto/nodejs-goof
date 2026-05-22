@@ -36,7 +36,7 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    User.find({ username: String(req.body.username), password: String(req.body.password) }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -55,13 +55,9 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log('User logged in: ' + String(username).replace(/[\r\n]/g, '_'))
 
-  if (redirectPage) {
-      return res.redirect(redirectPage)
-  } else {
-      return res.redirect('/admin')
-  }
+  return res.redirect('/admin')
 }
 
 exports.login = function (req, res, next) {
@@ -104,7 +100,14 @@ exports.save_account_details = function(req, res, next) {
     profile.lastname = validator.rtrim(profile.lastname)
 
     // render the view
-    return res.render('account.hbs', profile)
+    var safeProfile = {
+      email: profile.email,
+      phone: profile.phone,
+      firstname: profile.firstname,
+      lastname: profile.lastname,
+      country: profile.country
+    }
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
@@ -296,7 +299,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log('about_new query: ' + JSON.stringify(req.query).replace(/[\r\n]/g, '_'));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
