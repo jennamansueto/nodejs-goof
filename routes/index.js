@@ -60,7 +60,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   console.log('User logged in: ' + String(username).replace(/[\r\n]/g, '_'))
 
   if (redirectPage) {
-      if (typeof redirectPage !== 'string' || !redirectPage.startsWith('/') || redirectPage.startsWith('//')) {
+      if (typeof redirectPage !== 'string' || !redirectPage.startsWith('/') || redirectPage.startsWith('//') || redirectPage.includes('\\')) {
         return res.redirect('/admin')
       }
       return res.redirect(redirectPage)
