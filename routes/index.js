@@ -21,7 +21,7 @@ var fs = require('fs');
 var _ = require('lodash');
 
 function sanitizeLogInput(str) {
-  if (typeof str !== 'string') return String(str);
+  if (typeof str !== 'string') str = String(str);
   return str.replace(/[\r\n\x00-\x1f\x7f]/g, '_');
 }
 
@@ -63,7 +63,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
 
   console.log(`User logged in: ${sanitizeLogInput(username)}`)
 
-  if (redirectPage && typeof redirectPage === 'string' && redirectPage.startsWith('/') && !redirectPage.startsWith('//')) {
+  if (redirectPage && typeof redirectPage === 'string' && redirectPage.startsWith('/') && !redirectPage.startsWith('//') && !redirectPage.includes('\\')) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
