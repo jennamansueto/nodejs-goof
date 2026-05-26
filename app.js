@@ -81,7 +81,7 @@ if (app.get('env') == 'development') {
 }
 
 var token = process.env.APP_SECRET_TOKEN || 'development-placeholder-token';
-console.log('token: ' + token);
+console.log('token loaded: ' + (process.env.APP_SECRET_TOKEN ? '[from environment]' : '[using default]'));
 
 http.createServer(app).listen(app.get('port'), function () {
   console.log('Express server listening on port ' + app.get('port'));
