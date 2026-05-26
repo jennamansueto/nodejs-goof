@@ -10,6 +10,7 @@ var readline = require('readline');
 var moment = require('moment');
 var exec = require('child_process').exec;
 var validator = require('validator');
+var path = require('path');
 
 // zip-slip
 var fileType = require('file-type');
@@ -18,6 +19,11 @@ var fs = require('fs');
 
 // prototype-pollution
 var _ = require('lodash');
+
+function sanitizeLogInput(str) {
+  if (typeof str !== 'string') return String(str);
+  return str.replace(/[\r\n\x00-\x1f\x7f]/g, '_');
+}
 
 exports.index = function (req, res, next) {
   Todo.
@@ -36,7 +42,8 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    var password = typeof req.body.password === 'string' ? req.body.password : '';
+    User.find({ username: req.body.username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -54,10 +61,9 @@ exports.loginHandler = function (req, res, next) {
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log(`User logged in: ${sanitizeLogInput(username)}`)
 
-  if (redirectPage) {
+  if (redirectPage && typeof redirectPage === 'string' && redirectPage.startsWith('/') && !redirectPage.startsWith('//')) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -103,7 +109,8 @@ exports.save_account_details = function(req, res, next) {
     profile.firstname = validator.rtrim(profile.firstname)
     profile.lastname = validator.rtrim(profile.lastname)
 
-    // render the view
+    // render the view — strip layout property to prevent path traversal via template engine
+    delete profile.layout;
     return res.render('account.hbs', profile)
   } else {
     // if input validation fails, we just render the view as is
@@ -296,7 +303,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log(sanitizeLogInput(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
