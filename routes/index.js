@@ -36,11 +36,12 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    var username = String(req.body.username);
+    var password = String(req.body.password);
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
-        const username = req.body.username
         return adminLoginSuccess(redirectPage, session, username, res)
       } else {
         return res.status(401).send()
@@ -54,11 +55,11 @@ exports.loginHandler = function (req, res, next) {
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  var sanitizedUsername = String(username).replace(/[\r\n]/g, '')
+  console.log('User logged in: ' + sanitizedUsername)
 
-  if (redirectPage) {
-      return res.redirect(redirectPage)
+  if (redirectPage && String(redirectPage).startsWith('/') && !String(redirectPage).startsWith('//')) {
+      return res.redirect(String(redirectPage))
   } else {
       return res.redirect('/admin')
   }
@@ -103,8 +104,15 @@ exports.save_account_details = function(req, res, next) {
     profile.firstname = validator.rtrim(profile.firstname)
     profile.lastname = validator.rtrim(profile.lastname)
 
-    // render the view
-    return res.render('account.hbs', profile)
+    // render the view with only allowed fields to prevent path traversal
+    var safeProfile = {
+      email: profile.email,
+      phone: profile.phone,
+      firstname: profile.firstname,
+      lastname: profile.lastname,
+      country: profile.country
+    }
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
@@ -296,7 +304,8 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  var sanitizedQuery = JSON.stringify(req.query).replace(/[\r\n]/g, '');
+  console.log(sanitizedQuery);
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
