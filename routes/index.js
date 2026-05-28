@@ -34,9 +34,22 @@ exports.index = function (req, res, next) {
     });
 };
 
+function sanitizeLogInput(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[\r\n\t]/g, '_');
+}
+
+function isRelativePath(url) {
+  if (typeof url !== 'string') return false;
+  var normalized = url.replace(/[\x00-\x1f]/g, '');
+  return normalized.startsWith('/') && !normalized.startsWith('//') && !normalized.startsWith('/\\');
+}
+
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    var username = String(req.body.username);
+    var password = String(req.body.password);
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -55,9 +68,9 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log(`User logged in: ${sanitizeLogInput(username)}`)
 
-  if (redirectPage) {
+  if (redirectPage && isRelativePath(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -103,6 +116,8 @@ exports.save_account_details = function(req, res, next) {
     profile.firstname = validator.rtrim(profile.firstname)
     profile.lastname = validator.rtrim(profile.lastname)
 
+    // remove layout property to prevent path traversal via template engine
+    delete profile.layout;
     // render the view
     return res.render('account.hbs', profile)
   } else {
@@ -296,7 +311,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log(sanitizeLogInput(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
