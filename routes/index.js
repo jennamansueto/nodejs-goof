@@ -40,7 +40,9 @@ function sanitizeLogInput(str) {
 }
 
 function isRelativePath(url) {
-  return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\');
+  if (typeof url !== 'string') return false;
+  var normalized = url.replace(/[\x00-\x1f]/g, '');
+  return normalized.startsWith('/') && !normalized.startsWith('//') && !normalized.startsWith('/\\');
 }
 
 exports.loginHandler = function (req, res, next) {
