@@ -1,4 +1,4 @@
-const assert = require('assert)')
+const assert = require('assert')
 
 const TEST_PASSWORD = process.env.TEST_PASSWORD || 'testpassword-placeholder';
 const TEST_PASSWORD_ALT = process.env.TEST_PASSWORD_ALT || 'testpassword-alt-placeholder';
@@ -8,6 +8,18 @@ describe('Component Tests', () => {
 
     let comp
     let service
+
+    beforeEach(() => {
+      comp = {
+        password: null,
+        confirmPassword: null,
+        doNotMatch: null,
+        error: null,
+        success: null,
+        changePassword() {},
+      };
+      service = { save() {} };
+    });
 
     test('should show error if passwords do not match', () => {
       // GIVEN
