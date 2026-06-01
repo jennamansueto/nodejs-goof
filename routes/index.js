@@ -36,7 +36,7 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    User.find({ username: String(req.body.username), password: String(req.body.password) }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -57,7 +57,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   // Log the login action for audit
   console.log(`User logged in: ${username}`)
 
-  if (redirectPage) {
+  if (redirectPage && typeof redirectPage === 'string' && redirectPage.startsWith('/') && !redirectPage.startsWith('//')) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -103,7 +103,7 @@ exports.save_account_details = function(req, res, next) {
     profile.firstname = validator.rtrim(profile.firstname)
     profile.lastname = validator.rtrim(profile.lastname)
 
-    // render the view
+    delete profile.layout;
     return res.render('account.hbs', profile)
   } else {
     // if input validation fails, we just render the view as is
