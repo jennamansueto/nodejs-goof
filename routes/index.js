@@ -16,15 +16,8 @@ var fileType = require('file-type');
 var AdmZip = require('adm-zip');
 var fs = require('fs');
 
-var path = require('path');
-
 // prototype-pollution
 var _ = require('lodash');
-
-function sanitizeLogInput(str) {
-  if (typeof str !== 'string') return String(str);
-  return str.replace(/[\r\n]/g, '_').replace(/[\x00-\x1f]/g, '');
-}
 
 exports.index = function (req, res, next) {
   Todo.
@@ -43,8 +36,9 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
+    var username = String(req.body.username);
     var password = typeof req.body.password === 'string' ? req.body.password : '';
-    User.find({ username: req.body.username, password: password }, function (err, users) {
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -63,9 +57,9 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log(`User logged in: ${sanitizeLogInput(username)}`)
+  console.log('User logged in successfully')
 
-  if (redirectPage && redirectPage.startsWith('/') && !redirectPage.startsWith('//')) {
+  if (redirectPage && typeof redirectPage === 'string' && redirectPage.startsWith('/') && !redirectPage.startsWith('//') && !redirectPage.includes('\\')) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -311,7 +305,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(sanitizeLogInput(JSON.stringify(req.query)));
+  console.log('about_new page requested');
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
