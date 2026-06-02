@@ -16,9 +16,9 @@ describe('Component Tests', () => {
       // WHEN
       comp.changePassword();
       // THEN
-      assert(comp.doNotMatch).toBe('ERROR');
-      assert(comp.error).toBeNull();
-      assert(comp.success).toBeNull();
+      expect(comp.doNotMatch).toBe('ERROR');
+      expect(comp.error).toBeNull();
+      expect(comp.success).toBeNull();
     });
 
     test('should call Auth.changePassword when passwords match', () => {
@@ -29,7 +29,7 @@ describe('Component Tests', () => {
       comp.changePassword();
 
       // THEN
-      assert(service.save).toHaveBeenCalledWith(TEST_PASSWORD);
+      expect(service.save).toHaveBeenCalledWith(TEST_PASSWORD);
     });
 
     test('should set success to OK upon success', function() {
@@ -53,9 +53,9 @@ describe('Component Tests', () => {
       comp.changePassword();
 
       // THEN
-      assert(comp.doNotMatch).toBeNull();
-      assert(comp.success).toBeNull();
-      assert(comp.error).toBe('ERROR');
+      expect(comp.doNotMatch).toBeNull();
+      expect(comp.success).toBeNull();
+      expect(comp.error).toBe('ERROR');
     });
   });
 });
