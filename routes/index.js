@@ -57,7 +57,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   // Log the login action for audit
   console.log('User logged in successfully')
 
-  if (redirectPage && typeof redirectPage === 'string' && redirectPage.startsWith('/') && !redirectPage.startsWith('//') && !redirectPage.includes('\\')) {
+  if (redirectPage && typeof redirectPage === 'string' && redirectPage.startsWith('/') && !redirectPage.startsWith('//') && !redirectPage.includes('\\') && !/[\x00-\x1f\x7f]/.test(redirectPage)) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
