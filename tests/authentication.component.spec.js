@@ -1,4 +1,4 @@
-const assert = require('assert)')
+const assert = require('assert')
 
 const TEST_PASSWORD = process.env.TEST_PASSWORD || 'testpassword';
 const TEST_PASSWORD_ALT = process.env.TEST_PASSWORD_ALT || 'testpassword2';
