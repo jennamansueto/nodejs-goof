@@ -1,5 +1,3 @@
-const assert = require('assert')
-
 const TEST_PASSWORD = process.env.TEST_PASSWORD || 'testpassword';
 const TEST_PASSWORD_ALT = process.env.TEST_PASSWORD_ALT || 'testpassword2';
 
@@ -8,6 +6,20 @@ describe('Component Tests', () => {
 
     let comp
     let service
+
+    beforeEach(() => {
+      comp = {
+        password: null,
+        confirmPassword: null,
+        doNotMatch: null,
+        error: null,
+        success: null,
+        changePassword() {}
+      }
+      service = {
+        save: jest.fn()
+      }
+    })
 
     test('should show error if passwords do not match', () => {
       // GIVEN
