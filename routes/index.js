@@ -56,12 +56,11 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  const sanitizedUsername = username.replace(/[\r\n]/g, '_');
-  console.log('User logged in: ' + sanitizedUsername)
+  console.log('%s', JSON.stringify({event: 'login', user: username}))
 
   if (redirectPage) {
       const target = String(redirectPage);
-      if (target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\')) {
+      if (/^\/[a-zA-Z0-9_\-\/\.]*$/.test(target)) {
           return res.redirect(target)
       }
       return res.redirect('/admin')
@@ -309,8 +308,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  const sanitizedQuery = JSON.stringify(req.query).replace(/[\r\n]/g, '_');
-  console.log(sanitizedQuery);
+  console.log('%s', JSON.stringify({event: 'about_new', query: req.query}));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
