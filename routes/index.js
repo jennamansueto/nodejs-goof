@@ -56,17 +56,9 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log('%s', JSON.stringify({event: 'login', user: username}))
+  console.log({event: 'login', user: username})
 
-  if (redirectPage) {
-      const target = String(redirectPage);
-      if (/^\/[a-zA-Z0-9_\-\/\.]*$/.test(target)) {
-          return res.redirect(target)
-      }
-      return res.redirect('/admin')
-  } else {
-      return res.redirect('/admin')
-  }
+  return res.redirect('/admin')
 }
 
 exports.login = function (req, res, next) {
@@ -308,7 +300,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log('%s', JSON.stringify({event: 'about_new', query: req.query}));
+  console.log({event: 'about_new', query: req.query});
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
