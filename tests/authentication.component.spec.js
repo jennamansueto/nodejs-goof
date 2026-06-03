@@ -7,8 +7,8 @@ const TEST_PASSWORD_MATCH = process.env.TEST_PASSWORD_MATCH || 'testpassmatch'; 
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
 
-    let comp
-    let service
+    let comp = {}
+    let service = {}
 
     test('should show error if passwords do not match', () => {
       // GIVEN
