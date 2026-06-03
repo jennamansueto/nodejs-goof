@@ -52,21 +52,18 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
+var ALLOWED_REDIRECTS = ['/', '/admin', '/login', '/account_details', '/chat', '/about_new'];
+
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
   console.log(`User logged in: ${username}`)
 
-  if (redirectPage) {
-      var target = String(redirectPage);
-      if (target.startsWith('/') && !target.startsWith('//')) {
-          return res.redirect(target)
-      }
-      return res.redirect('/admin')
-  } else {
-      return res.redirect('/admin')
+  if (redirectPage && ALLOWED_REDIRECTS.indexOf(String(redirectPage)) !== -1) {
+      return res.redirect(ALLOWED_REDIRECTS[ALLOWED_REDIRECTS.indexOf(String(redirectPage))])
   }
+  return res.redirect('/admin')
 }
 
 exports.login = function (req, res, next) {
