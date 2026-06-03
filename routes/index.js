@@ -60,7 +60,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
 
   if (redirectPage) {
       var target = String(redirectPage);
-      if (target.startsWith('/') && !target.startsWith('//')) {
+      if (target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\')) {
           return res.redirect(target)
       }
       return res.redirect('/admin')
