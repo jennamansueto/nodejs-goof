@@ -1,15 +1,19 @@
 const assert = require('assert)')
 
+const TEST_PASSWORD_1 = process.env.TEST_PASSWORD_1 || 'testpass1'; // NOSONAR
+const TEST_PASSWORD_2 = process.env.TEST_PASSWORD_2 || 'testpass2'; // NOSONAR
+const TEST_PASSWORD_MATCH = process.env.TEST_PASSWORD_MATCH || 'testpassmatch'; // NOSONAR
+
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
 
-    let comp
-    let service
+    let comp = {}
+    let service = {}
 
     test('should show error if passwords do not match', () => {
       // GIVEN
-      comp.password = 'password1';
-      comp.confirmPassword = 'password2';
+      comp.password = TEST_PASSWORD_1;
+      comp.confirmPassword = TEST_PASSWORD_2;
       // WHEN
       comp.changePassword();
       // THEN
@@ -20,19 +24,18 @@ describe('Component Tests', () => {
 
     test('should call Auth.changePassword when passwords match', () => {
       // GIVEN
-      // deepcode ignore NoHardcodedPasswords/test: <please specify a reason of ignoring this>
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_PASSWORD_MATCH;
 
       // WHEN
       comp.changePassword();
 
       // THEN
-      assert(service.save).toHaveBeenCalledWith('myPassword');
+      assert(service.save).toHaveBeenCalledWith(TEST_PASSWORD_MATCH);
     });
 
     test('should set success to OK upon success', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_PASSWORD_MATCH;
 
       // WHEN
       comp.changePassword();
@@ -45,7 +48,7 @@ describe('Component Tests', () => {
 
     test('should notify of error if change password fails', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = TEST_PASSWORD_MATCH;
 
       // WHEN
       comp.changePassword();
