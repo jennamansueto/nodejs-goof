@@ -36,8 +36,8 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    var username = String(req.body.username);
-    var password = String(req.body.password);
+    const username = String(req.body.username);
+    const password = String(req.body.password);
     User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
@@ -52,7 +52,7 @@ exports.loginHandler = function (req, res, next) {
   }
 };
 
-var ALLOWED_REDIRECTS = ['/', '/admin', '/login', '/account_details', '/chat', '/about_new'];
+const ALLOWED_REDIRECTS = ['/', '/admin', '/login', '/account_details', '/chat', '/about_new'];
 
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
@@ -60,7 +60,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   // Log the login action for audit
   console.log(`User logged in: ${username}`)
 
-  if (redirectPage && ALLOWED_REDIRECTS.indexOf(String(redirectPage)) !== -1) {
+  if (redirectPage && ALLOWED_REDIRECTS.includes(String(redirectPage))) {
       return res.redirect(ALLOWED_REDIRECTS[ALLOWED_REDIRECTS.indexOf(String(redirectPage))])
   }
   return res.redirect('/admin')
@@ -106,7 +106,7 @@ exports.save_account_details = function(req, res, next) {
     profile.lastname = validator.rtrim(profile.lastname)
 
     // Prevent path traversal via template engine layout property
-    var safeProfile = {
+    const safeProfile = {
       email: profile.email,
       phone: profile.phone,
       firstname: profile.firstname,
