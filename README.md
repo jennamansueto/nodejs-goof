@@ -85,7 +85,7 @@ The form is completely functional. The way it works is, it receives the profile 
 You'd think that what's the worst that can happen because we use a validation to confirm the expected input, however the validation doesn't take into account a new field that can be added to the object, such as `layout`, which when passed to a template language, could lead to Local File Inclusion (Path Traversal) vulnerabilities. Here is a proof-of-concept showing it:
 
 ```sh
-curl -X 'POST' --cookie c.txt --cookie-jar c.txt -H 'Content-Type: application/json' --data-binary '{"username": "admin@snyk.io", "password": "SuperSecretPassword"}' 'http://localhost:3001/login'
+curl -X 'POST' --cookie c.txt --cookie-jar c.txt -H 'Content-Type: application/json' --data-binary '{"username": "admin@snyk.io", "password": "ChangeMe!Admin2024"}' 'http://localhost:3001/login'
 ```
 
 ```sh
@@ -118,7 +118,7 @@ echo '{"username":"admin@snyk.io", "password":"WrongPassword"}' | http --json $G
 
 And another request, as denoted with the following JSON request to sign-in as the admin user works as expected:
 ```sh
-echo '{"username":"admin@snyk.io", "password":"SuperSecretPassword"}' | http --json $GOOF_HOST/login -v
+echo '{"username":"admin@snyk.io", "password":"ChangeMe!Admin2024"}' | http --json $GOOF_HOST/login -v
 ```
 
 However, what if the password wasn't a string? what if it was an object? Why would an object be harmful or even considered an issue?
