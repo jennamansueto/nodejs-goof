@@ -39,12 +39,11 @@ exports.loginHandler = function (req, res, next) {
     return res.status(401).send();
   }
   if (validator.isEmail(req.body.username)) {
-    const username = req.body.username;
-    const password = req.body.password;
-    User.find({ username: username, password: password }, function (err, users) {
+    User.find({ username: req.body.username.toString(), password: req.body.password.toString() }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
+        const username = req.body.username.toString()
         return adminLoginSuccess(redirectPage, session, username, res)
       } else {
         return res.status(401).send()
@@ -62,15 +61,14 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   const sanitizedUsername = String(username).replace(/[\n\r\t]/g, '_');
   console.log(`User logged in: ${sanitizedUsername}`)
 
+  const ALLOWED_REDIRECTS = {'/admin': '/admin', '/': '/', '/login': '/login', '/account': '/account'};
   if (redirectPage) {
-      const target = String(redirectPage);
-      if (target.startsWith('/') && !target.startsWith('//')) {
-          return res.redirect(target)
+      const safeTarget = ALLOWED_REDIRECTS[String(redirectPage)];
+      if (safeTarget) {
+          return res.redirect(safeTarget)
       }
-      return res.redirect('/admin')
-  } else {
-      return res.redirect('/admin')
   }
+  return res.redirect('/admin')
 }
 
 exports.login = function (req, res, next) {
