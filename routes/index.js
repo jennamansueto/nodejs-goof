@@ -35,9 +35,12 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
+  if (typeof req.body.username !== 'string' || typeof req.body.password !== 'string') {
+    return res.status(401).send();
+  }
   if (validator.isEmail(req.body.username)) {
-    const username = String(req.body.username);
-    const password = String(req.body.password);
+    const username = req.body.username;
+    const password = req.body.password;
     User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
@@ -109,9 +112,15 @@ exports.save_account_details = function(req, res, next) {
     profile.firstname = validator.rtrim(profile.firstname)
     profile.lastname = validator.rtrim(profile.lastname)
 
-    // render the view
-    delete profile.layout;
-    return res.render('account.hbs', profile)
+    // render the view with only validated fields
+    const safeProfile = {
+      email: profile.email,
+      phone: profile.phone,
+      firstname: profile.firstname,
+      lastname: profile.lastname,
+      country: profile.country
+    };
+    return res.render('account.hbs', safeProfile)
   } else {
     // if input validation fails, we just render the view as is
     console.log('error in form details')
