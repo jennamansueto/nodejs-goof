@@ -36,7 +36,9 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    const username = String(req.body.username);
+    const password = String(req.body.password);
+    User.find({ username: username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -54,10 +56,10 @@ exports.loginHandler = function (req, res, next) {
 function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
-  // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  const sanitizedUsername = String(username).replace(/[\r\n]/g, '_');
+  console.log(`User logged in: ${sanitizedUsername}`);
 
-  if (redirectPage) {
+  if (redirectPage && redirectPage.startsWith('/') && !redirectPage.startsWith('//')) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -104,6 +106,7 @@ exports.save_account_details = function(req, res, next) {
     profile.lastname = validator.rtrim(profile.lastname)
 
     // render the view
+    delete profile.layout;
     return res.render('account.hbs', profile)
   } else {
     // if input validation fails, we just render the view as is
@@ -296,7 +299,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log(JSON.stringify(req.query).replace(/[\r\n]/g, ''));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
