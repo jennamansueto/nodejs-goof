@@ -59,7 +59,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   const sanitizedUsername = String(username).replace(/[\r\n]/g, '_');
   console.log(`User logged in: ${sanitizedUsername}`);
 
-  if (redirectPage && redirectPage.startsWith('/') && !redirectPage.startsWith('//')) {
+  if (redirectPage && redirectPage.startsWith('/') && !redirectPage.startsWith('//') && !redirectPage.includes('\\')) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
