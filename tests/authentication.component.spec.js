@@ -21,8 +21,12 @@ describe('Component Tests', () => {
           if (this.password !== this.confirmPassword) {
             this.doNotMatch = 'ERROR';
           } else {
-            service.save(this.password);
-            this.success = 'OK';
+            try {
+              service.save(this.password);
+              this.success = 'OK';
+            } catch (e) {
+              this.error = 'ERROR';
+            }
           }
         },
       };
@@ -68,6 +72,7 @@ describe('Component Tests', () => {
     test('should notify of error if change password fails', function() {
       // GIVEN
       comp.password = comp.confirmPassword = TEST_CREDENTIALS.matching;
+      service.save = jest.fn(() => { throw new Error('save failed'); });
 
       // WHEN
       comp.changePassword();
