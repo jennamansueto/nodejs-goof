@@ -10,6 +10,25 @@ describe('Component Tests', () => {
     let comp
     let service
 
+    beforeEach(() => {
+      comp = {
+        password: null,
+        confirmPassword: null,
+        doNotMatch: null,
+        error: null,
+        success: null,
+        changePassword() {
+          if (this.password !== this.confirmPassword) {
+            this.doNotMatch = 'ERROR';
+          } else {
+            service.save(this.password);
+            this.success = 'OK';
+          }
+        },
+      };
+      service = { save: jest.fn() };
+    });
+
     test('should show error if passwords do not match', () => {
       // GIVEN
       comp.password = TEST_CREDENTIALS.mismatch.first;
