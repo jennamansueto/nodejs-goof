@@ -7,10 +7,11 @@ const TEST_CREDENTIALS = {
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
 
-    let comp
-    let service
+    let comp;
+    let service;
 
     beforeEach(() => {
+      service = { save: jest.fn() };
       comp = {
         password: null,
         confirmPassword: null,
@@ -20,64 +21,45 @@ describe('Component Tests', () => {
         changePassword() {
           if (this.password !== this.confirmPassword) {
             this.doNotMatch = 'ERROR';
-          } else {
-            try {
-              service.save(this.password);
-              this.success = 'OK';
-            } catch (e) {
-              this.error = 'ERROR';
-            }
+            return;
+          }
+          try {
+            service.save(this.password);
+            this.success = 'OK';
+          } catch (_) {
+            this.error = 'ERROR';
           }
         },
       };
-      service = { save: jest.fn() };
     });
 
     test('should show error if passwords do not match', () => {
-      // GIVEN
       comp.password = TEST_CREDENTIALS.mismatch.first;
       comp.confirmPassword = TEST_CREDENTIALS.mismatch.second;
-      // WHEN
       comp.changePassword();
-      // THEN
       expect(comp.doNotMatch).toBe('ERROR');
       expect(comp.error).toBeNull();
       expect(comp.success).toBeNull();
     });
 
     test('should call Auth.changePassword when passwords match', () => {
-      // GIVEN
       comp.password = comp.confirmPassword = TEST_CREDENTIALS.matching;
-
-      // WHEN
       comp.changePassword();
-
-      // THEN
       expect(service.save).toHaveBeenCalledWith(TEST_CREDENTIALS.matching);
     });
 
-    test('should set success to OK upon success', function() {
-      // GIVEN
+    test('should set success to OK upon success', () => {
       comp.password = comp.confirmPassword = TEST_CREDENTIALS.matching;
-
-      // WHEN
       comp.changePassword();
-
-      // THEN
       expect(comp.doNotMatch).toBeNull();
       expect(comp.error).toBeNull();
       expect(comp.success).toBe('OK');
     });
 
-    test('should notify of error if change password fails', function() {
-      // GIVEN
+    test('should notify of error if change password fails', () => {
       comp.password = comp.confirmPassword = TEST_CREDENTIALS.matching;
       service.save = jest.fn(() => { throw new Error('save failed'); });
-
-      // WHEN
       comp.changePassword();
-
-      // THEN
       expect(comp.doNotMatch).toBeNull();
       expect(comp.success).toBeNull();
       expect(comp.error).toBe('ERROR');
