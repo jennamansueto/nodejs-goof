@@ -1,5 +1,4 @@
-const assert = require('assert)')
-
+// deepcode ignore NoHardcodedPasswords/test: test fixture values only
 const TEST_CREDENTIALS = {
   mismatch: { first: 'password1', second: 'password2' },
   matching: 'myPassword',
@@ -18,9 +17,9 @@ describe('Component Tests', () => {
       // WHEN
       comp.changePassword();
       // THEN
-      assert(comp.doNotMatch).toBe('ERROR');
-      assert(comp.error).toBeNull();
-      assert(comp.success).toBeNull();
+      expect(comp.doNotMatch).toBe('ERROR');
+      expect(comp.error).toBeNull();
+      expect(comp.success).toBeNull();
     });
 
     test('should call Auth.changePassword when passwords match', () => {
@@ -31,7 +30,7 @@ describe('Component Tests', () => {
       comp.changePassword();
 
       // THEN
-      assert(service.save).toHaveBeenCalledWith(TEST_CREDENTIALS.matching);
+      expect(service.save).toHaveBeenCalledWith(TEST_CREDENTIALS.matching);
     });
 
     test('should set success to OK upon success', function() {
@@ -55,9 +54,9 @@ describe('Component Tests', () => {
       comp.changePassword();
 
       // THEN
-      assert(comp.doNotMatch).toBeNull();
-      assert(comp.success).toBeNull();
-      assert(comp.error).toBe('ERROR');
+      expect(comp.doNotMatch).toBeNull();
+      expect(comp.success).toBeNull();
+      expect(comp.error).toBe('ERROR');
     });
   });
 });
