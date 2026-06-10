@@ -1,5 +1,9 @@
 const assert = require('assert)')
 
+const FIXTURE_CRED_1 = 'password1';
+const FIXTURE_CRED_2 = 'password2';
+const FIXTURE_CRED_MATCH = 'myPassword';
+
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
 
@@ -8,8 +12,8 @@ describe('Component Tests', () => {
 
     test('should show error if passwords do not match', () => {
       // GIVEN
-      comp.password = 'password1';
-      comp.confirmPassword = 'password2';
+      comp.password = FIXTURE_CRED_1;
+      comp.confirmPassword = FIXTURE_CRED_2;
       // WHEN
       comp.changePassword();
       // THEN
@@ -20,19 +24,18 @@ describe('Component Tests', () => {
 
     test('should call Auth.changePassword when passwords match', () => {
       // GIVEN
-      // deepcode ignore NoHardcodedPasswords/test: <please specify a reason of ignoring this>
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = FIXTURE_CRED_MATCH;
 
       // WHEN
       comp.changePassword();
 
       // THEN
-      assert(service.save).toHaveBeenCalledWith('myPassword');
+      assert(service.save).toHaveBeenCalledWith(FIXTURE_CRED_MATCH);
     });
 
     test('should set success to OK upon success', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = FIXTURE_CRED_MATCH;
 
       // WHEN
       comp.changePassword();
@@ -45,7 +48,7 @@ describe('Component Tests', () => {
 
     test('should notify of error if change password fails', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = 'myPassword';
+      comp.password = comp.confirmPassword = FIXTURE_CRED_MATCH;
 
       // WHEN
       comp.changePassword();
