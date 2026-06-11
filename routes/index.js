@@ -42,10 +42,10 @@ exports.index = function (req, res, next) {
 };
 
 exports.loginHandler = function (req, res, next) {
+  if (typeof req.body.password !== 'string' || typeof req.body.username !== 'string') {
+    return res.status(401).send();
+  }
   if (validator.isEmail(req.body.username)) {
-    if (typeof req.body.password !== 'string' || typeof req.body.username !== 'string') {
-      return res.status(401).send();
-    }
     User.find({ username: req.body.username.toString(), password: req.body.password.toString() }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
