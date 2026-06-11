@@ -19,6 +19,13 @@ var fs = require('fs');
 // prototype-pollution
 var _ = require('lodash');
 
+function sanitizeLogInput(str) {
+  if (typeof str !== 'string') {
+    str = JSON.stringify(str);
+  }
+  return str.replace(/[\r\n\t]/g, '_');
+}
+
 exports.index = function (req, res, next) {
   Todo.
     find({}).
@@ -36,7 +43,8 @@ exports.index = function (req, res, next) {
 
 exports.loginHandler = function (req, res, next) {
   if (validator.isEmail(req.body.username)) {
-    User.find({ username: req.body.username, password: req.body.password }, function (err, users) {
+    var password = typeof req.body.password === 'string' ? req.body.password : '';
+    User.find({ username: req.body.username, password: password }, function (err, users) {
       if (users.length > 0) {
         const redirectPage = req.body.redirectPage
         const session = req.session
@@ -55,7 +63,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   session.loggedIn = 1
 
   // Log the login action for audit
-  console.log(`User logged in: ${username}`)
+  console.log(`User logged in: ${sanitizeLogInput(username)}`)
 
   if (redirectPage) {
       return res.redirect(redirectPage)
@@ -296,7 +304,7 @@ exports.import = function (req, res, next) {
 };
 
 exports.about_new = function (req, res, next) {
-  console.log(JSON.stringify(req.query));
+  console.log(sanitizeLogInput(JSON.stringify(req.query)));
   return res.render("about_new.dust",
     {
       title: 'Patch TODO List',
