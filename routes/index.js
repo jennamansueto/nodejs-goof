@@ -57,7 +57,7 @@ function adminLoginSuccess(redirectPage, session, username, res) {
   // Log the login action for audit
   console.log(`User logged in: ${username}`)
 
-  if (redirectPage) {
+  if (redirectPage?.startsWith('/') && !redirectPage?.startsWith('//') && !redirectPage?.includes('\\')) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
@@ -104,6 +104,7 @@ exports.save_account_details = function(req, res, next) {
     profile.lastname = validator.rtrim(profile.lastname)
 
     // render the view
+    delete profile.layout;
     return res.render('account.hbs', profile)
   } else {
     // if input validation fails, we just render the view as is
