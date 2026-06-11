@@ -21,7 +21,7 @@ var _ = require('lodash');
 
 function sanitizeLogInput(str) {
   if (typeof str !== 'string') {
-    str = JSON.stringify(str);
+    str = JSON.stringify(str) || '';
   }
   return str.replace(/[\r\n\t]/g, '_');
 }
