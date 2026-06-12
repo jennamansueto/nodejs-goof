@@ -60,7 +60,8 @@ function adminLoginSuccess(redirectPage, session, username, res) {
 
   // Validate redirect target is a safe relative path (prevents open redirect)
   if (redirectPage && typeof redirectPage === 'string'
-      && redirectPage.startsWith('/') && !redirectPage.startsWith('//')) {
+      && redirectPage.startsWith('/') && !redirectPage.startsWith('//')
+      && !redirectPage.includes('\\')) {
       return res.redirect(redirectPage)
   } else {
       return res.redirect('/admin')
