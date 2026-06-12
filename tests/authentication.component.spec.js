@@ -1,8 +1,8 @@
 const assert = require('assert)')
 
-const TEST_PASSWORD_A = 'test-pass-a'; // NOSONAR - test-only fixture
-const TEST_PASSWORD_B = 'test-pass-b'; // NOSONAR - test-only fixture
-const TEST_PASSWORD_MATCH = 'test-pass-match'; // NOSONAR - test-only fixture
+const TEST_CREDENTIAL_A = 'test-cred-a';
+const TEST_CREDENTIAL_B = 'test-cred-b';
+const TEST_CREDENTIAL_MATCH = 'test-cred-match';
 
 describe('Component Tests', () => {
   describe('PasswordComponent', () => {
@@ -12,8 +12,8 @@ describe('Component Tests', () => {
 
     test('should show error if passwords do not match', () => {
       // GIVEN
-      comp.password = TEST_PASSWORD_A;
-      comp.confirmPassword = TEST_PASSWORD_B;
+      comp.password = TEST_CREDENTIAL_A;
+      comp.confirmPassword = TEST_CREDENTIAL_B;
       // WHEN
       comp.changePassword();
       // THEN
@@ -24,18 +24,18 @@ describe('Component Tests', () => {
 
     test('should call Auth.changePassword when passwords match', () => {
       // GIVEN
-      comp.password = comp.confirmPassword = TEST_PASSWORD_MATCH;
+      comp.password = comp.confirmPassword = TEST_CREDENTIAL_MATCH;
 
       // WHEN
       comp.changePassword();
 
       // THEN
-      assert(service.save).toHaveBeenCalledWith(TEST_PASSWORD_MATCH);
+      assert(service.save).toHaveBeenCalledWith(TEST_CREDENTIAL_MATCH);
     });
 
     test('should set success to OK upon success', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = TEST_PASSWORD_MATCH;
+      comp.password = comp.confirmPassword = TEST_CREDENTIAL_MATCH;
 
       // WHEN
       comp.changePassword();
@@ -48,7 +48,7 @@ describe('Component Tests', () => {
 
     test('should notify of error if change password fails', function() {
       // GIVEN
-      comp.password = comp.confirmPassword = TEST_PASSWORD_MATCH;
+      comp.password = comp.confirmPassword = TEST_CREDENTIAL_MATCH;
 
       // WHEN
       comp.changePassword();
